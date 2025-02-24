@@ -6,10 +6,42 @@ local sellCooldown = 5
 local fishCount, startTime, lastSellTime = 0, os.time(), 0
 local Finished, Progress = false, false
 
--- Initialize UI Library
-local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
-local SaveManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/SaveManager.lua"))()
-local InterfaceManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/InterfaceManager.lua"))()
+-- Wait for game to load fully
+if not game:IsLoaded() then
+    game.Loaded:Wait()
+end
+
+-- Initialize UI Library with error handling
+local Fluent = nil
+local success, errorMsg = pcall(function()
+    Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
+end)
+
+if not success or not Fluent then
+    warn("Failed to load Fluent library:", errorMsg)
+    return
+end
+
+-- Load addons with error handling
+local SaveManager = nil
+success, errorMsg = pcall(function()
+    SaveManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/SaveManager.lua"))()
+end)
+
+if not success or not SaveManager then
+    warn("Failed to load SaveManager:", errorMsg)
+    return
+end
+
+local InterfaceManager = nil
+success, errorMsg = pcall(function()
+    InterfaceManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/InterfaceManager.lua"))()
+end)
+
+if not success or not InterfaceManager then
+    warn("Failed to load InterfaceManager:", errorMsg)
+    return
+end
 
 -- Create Window
 local Window = Fluent:CreateWindow({
@@ -398,7 +430,7 @@ local function universalFish()
                     if fishSuccess then break end
                 end
             end
-        }
+        end
         
         if fishSuccess then
             return true
