@@ -21,6 +21,13 @@ local CalibrationData = {
     FishingRod = "Fishing Rod" -- Default name, will be updated dynamically
 }
 
+-- Options for the additional functionality
+local Options = {
+    FloatOnWater = false,
+    AutoShake = false,
+    AutoMinigameBlatant = false
+}
+
 -- FischAPI Implementation
 local FischAPI = {}
 
@@ -56,6 +63,62 @@ function FischAPI.Cast()
     return false
 end
 
+-- FischUser Implementation (Added from the new code)
+local FischUser = {}
+
+function FischUser.AutoCast()
+    FischAPI.Cast()
+end
+ 
+function FischUser.AutoReel()
+    FischAPI.InstantReel()
+end
+
+function FischUser.AutoShake()
+    -- Using the existing performShake function logic
+    performShake()
+end
+
+function FischUser.FloatOnWater()
+    -- Implementation for floating on water
+    local humanoid = character:FindFirstChildOfClass("Humanoid")
+    if humanoid then
+        local rootPart = character:FindFirstChild("HumanoidRootPart")
+        if rootPart then
+            -- Check if player is over water (simplified implementation)
+            local rayParams = RaycastParams.new()
+            rayParams.FilterType = Enum.RaycastFilterType.Exclude
+            rayParams.FilterDescendantsInstances = {character}
+            
+            local rayResult = workspace:Raycast(rootPart.Position, Vector3.new(0, -10, 0), rayParams)
+            if not rayResult or rayResult.Instance.Name:lower():find("water") then
+                -- Player is over water, make them float
+                humanoid:ChangeState(Enum.HumanoidStateType.Physics)
+                rootPart.Velocity = Vector3.new(rootPart.Velocity.X, 0, rootPart.Velocity.Z)
+                rootPart.AssemblyLinearVelocity = Vector3.new(rootPart.AssemblyLinearVelocity.X, 0, rootPart.AssemblyLinearVelocity.Z)
+            end
+        end
+    end
+end
+ 
+function FischUser.StepLoop()
+    if Options.FloatOnWater == true then
+        pcall(function()
+            FischUser.FloatOnWater()
+        end)
+    end
+    if Options.AutoShake == true then
+        pcall(function()
+            FischUser.AutoShake()
+        end)
+    end
+    if Options.AutoMinigameBlatant == true then
+        pcall(function()
+            FischUser.AutoReel()
+        end)
+    end
+end
+
 -- GUI Setup
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "FishingHelper"
@@ -65,7 +128,7 @@ ScreenGui.Parent = player.PlayerGui
 -- Main Frame
 local mainFrame = Instance.new("Frame")
 mainFrame.Name = "MainFrame"
-mainFrame.Size = UDim2.new(0, 200, 0, 190) -- Increased height for the new button
+mainFrame.Size = UDim2.new(0, 200, 0, 250) -- Increased height for the additional buttons
 mainFrame.Position = UDim2.new(0.8, 0, 0.5, 0)
 mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 mainFrame.BorderSizePixel = 0
@@ -110,7 +173,7 @@ toggleButton.Parent = titleBar
 local autoReelButton = Instance.new("TextButton")
 autoReelButton.Name = "AutoReelButton"
 autoReelButton.Size = UDim2.new(0.9, 0, 0, 25)
-autoReelButton.Position = UDim2.new(0.05, 0, 0.25, 0)
+autoReelButton.Position = UDim2.new(0.05, 0, 0.2, 0)
 autoReelButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
 autoReelButton.Text = "Auto Reel: OFF"
 autoReelButton.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -123,7 +186,7 @@ autoReelButton.Parent = mainFrame
 local autoShakeButton = Instance.new("TextButton")
 autoShakeButton.Name = "AutoShakeButton"
 autoShakeButton.Size = UDim2.new(0.9, 0, 0, 25)
-autoShakeButton.Position = UDim2.new(0.05, 0, 0.45, 0)
+autoShakeButton.Position = UDim2.new(0.05, 0, 0.35, 0)
 autoShakeButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
 autoShakeButton.Text = "Auto Shake: OFF"
 autoShakeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -136,7 +199,7 @@ autoShakeButton.Parent = mainFrame
 local autoCastButton = Instance.new("TextButton")
 autoCastButton.Name = "AutoCastButton"
 autoCastButton.Size = UDim2.new(0.9, 0, 0, 25)
-autoCastButton.Position = UDim2.new(0.05, 0, 0.65, 0)
+autoCastButton.Position = UDim2.new(0.05, 0, 0.5, 0)
 autoCastButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
 autoCastButton.Text = "Auto Cast: OFF"
 autoCastButton.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -149,7 +212,7 @@ autoCastButton.Parent = mainFrame
 local noButtonMoveButton = Instance.new("TextButton")
 noButtonMoveButton.Name = "NoButtonMoveButton"
 noButtonMoveButton.Size = UDim2.new(0.9, 0, 0, 25)
-noButtonMoveButton.Position = UDim2.new(0.05, 0, 0.85, 0) -- Position it above the cast distance
+noButtonMoveButton.Position = UDim2.new(0.05, 0, 0.65, 0)
 noButtonMoveButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
 noButtonMoveButton.Text = "No Button Move: OFF"
 noButtonMoveButton.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -158,11 +221,24 @@ noButtonMoveButton.Font = Enum.Font.SourceSans
 noButtonMoveButton.BorderSizePixel = 0
 noButtonMoveButton.Parent = mainFrame
 
+-- Float On Water Button (Added from new functionality)
+local floatOnWaterButton = Instance.new("TextButton")
+floatOnWaterButton.Name = "FloatOnWaterButton"
+floatOnWaterButton.Size = UDim2.new(0.9, 0, 0, 25)
+floatOnWaterButton.Position = UDim2.new(0.05, 0, 0.8, 0)
+floatOnWaterButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+floatOnWaterButton.Text = "Float On Water: OFF"
+floatOnWaterButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+floatOnWaterButton.TextSize = 14
+floatOnWaterButton.Font = Enum.Font.SourceSans
+floatOnWaterButton.BorderSizePixel = 0
+floatOnWaterButton.Parent = mainFrame
+
 -- Cast Distance Adjuster
 local castDistance = Instance.new("TextBox")
 castDistance.Name = "CastDistance"
 castDistance.Size = UDim2.new(0.9, 0, 0, 25)
-castDistance.Position = UDim2.new(0.05, 0, 0.95, 0) -- Adjusted position
+castDistance.Position = UDim2.new(0.05, 0, 0.95, 0)
 castDistance.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
 castDistance.Text = tostring(rodCastDistance)
 castDistance.PlaceholderText = "Cast Distance"
@@ -202,7 +278,7 @@ local Functions = {
 }
 
 -- Function to get current fishing rod
-local function getCurrentRod()
+function getCurrentRod()
     local character = player.Character or player.CharacterAdded:Wait()
     
     -- Search through all character items for a rod
@@ -216,7 +292,7 @@ local function getCurrentRod()
 end
 
 -- Function to perform a reel
-local function performReel()
+function performReel()
     -- Try FischAPI method first
     FischAPI.InstantReel()
     
@@ -238,7 +314,7 @@ local function performReel()
 end
 
 -- Function to perform a cast
-local function performCast()
+function performCast()
     -- Try FischAPI method first
     if FischAPI.Cast() then
         return
@@ -264,7 +340,7 @@ local function performCast()
 end
 
 -- Updated function to perform a shake using the new method
-local function performShake()
+function performShake()
     -- Try FischAPI method first
     if FischAPI.TapShake() then
         return
@@ -318,7 +394,8 @@ toggleButton.MouseButton1Click:Connect(function()
         autoReelButton.Visible = false
         autoShakeButton.Visible = false
         autoCastButton.Visible = false
-        noButtonMoveButton.Visible = false -- Hide the new button
+        noButtonMoveButton.Visible = false
+        floatOnWaterButton.Visible = false -- Hide the new float button
         castDistance.Visible = false
         mainFrame.Size = UDim2.new(0, 200, 0, 30)
         toggleButton.Text = "O"
@@ -327,9 +404,10 @@ toggleButton.MouseButton1Click:Connect(function()
         autoReelButton.Visible = true
         autoShakeButton.Visible = true
         autoCastButton.Visible = true
-        noButtonMoveButton.Visible = true -- Show the new button
+        noButtonMoveButton.Visible = true
+        floatOnWaterButton.Visible = true -- Show the new float button
         castDistance.Visible = true
-        mainFrame.Size = UDim2.new(0, 200, 0, 190) -- Adjusted size
+        mainFrame.Size = UDim2.new(0, 200, 0, 250) -- Adjusted size for all buttons
         toggleButton.Text = "X"
         toggleButton.BackgroundColor3 = Color3.fromRGB(200, 60, 60)
     end
@@ -338,6 +416,7 @@ end)
 
 autoReelButton.MouseButton1Click:Connect(function()
     autoReelEnabled = not autoReelEnabled
+    Options.AutoMinigameBlatant = autoReelEnabled -- Sync with Options
     autoReelButton.Text = "Auto Reel: " .. (autoReelEnabled and "ON" or "OFF")
     autoReelButton.BackgroundColor3 = autoReelEnabled and Color3.fromRGB(60, 180, 60) or Color3.fromRGB(60, 60, 60)
     
@@ -354,6 +433,7 @@ end)
 
 autoShakeButton.MouseButton1Click:Connect(function()
     autoShakeEnabled = not autoShakeEnabled
+    Options.AutoShake = autoShakeEnabled -- Sync with Options
     autoShakeButton.Text = "Auto Shake: " .. (autoShakeEnabled and "ON" or "OFF")
     autoShakeButton.BackgroundColor3 = autoShakeEnabled and Color3.fromRGB(60, 180, 60) or Color3.fromRGB(60, 60, 60)
     
@@ -373,6 +453,13 @@ noButtonMoveButton.MouseButton1Click:Connect(function()
     noButtonMove = not noButtonMove
     noButtonMoveButton.Text = "No Button Move: " .. (noButtonMove and "ON" or "OFF")
     noButtonMoveButton.BackgroundColor3 = noButtonMove and Color3.fromRGB(60, 180, 60) or Color3.fromRGB(60, 60, 60)
+end)
+
+-- New button for Float On Water
+floatOnWaterButton.MouseButton1Click:Connect(function()
+    Options.FloatOnWater = not Options.FloatOnWater
+    floatOnWaterButton.Text = "Float On Water: " .. (Options.FloatOnWater and "ON" or "OFF")
+    floatOnWaterButton.BackgroundColor3 = Options.FloatOnWater and Color3.fromRGB(60, 180, 60) or Color3.fromRGB(60, 60, 60)
 end)
 
 autoCastButton.MouseButton1Click:Connect(function()
@@ -408,12 +495,22 @@ player.CharacterAdded:Connect(function(newCharacter)
     character = newCharacter
 end)
 
+-- Start the StepLoop for running the new functionality
+spawn(function()
+    while true do
+        pcall(function()
+            FischUser.StepLoop()
+        end)
+        task.wait(0.1)
+    end
+end)
+
 -- Notification when script loads
 local notification = Instance.new("TextLabel")
 notification.Name = "Notification"
 notification.Size = UDim2.new(0, 200, 0, 30)
 notification.Position = UDim2.new(0.5, -100, 0.8, 0)
-notification.Text = "Fishing Helper Loaded!"
+notification.Text = "Enhanced Fishing Helper Loaded!"
 notification.TextColor3 = Color3.fromRGB(255, 255, 255)
 notification.TextSize = 16
 notification.Font = Enum.Font.SourceSansBold
@@ -424,7 +521,10 @@ notification.Parent = ScreenGui
 
 game:GetService("Debris"):AddItem(notification, 3)
 
-print("Fishing helper script loaded successfully!")
+print("Enhanced fishing helper script loaded successfully!")
 
--- Return FischAPI for external use
-return FischAPI
+-- Return FischAPI and FischUser for external use
+return {
+    FischAPI = FischAPI,
+    FischUser = FischUser
+}
