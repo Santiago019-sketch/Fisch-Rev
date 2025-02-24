@@ -56,7 +56,7 @@ end
 function UI.Initialize()
     --UI
 
-    local Windows = NEVERLOSE:AddWindow("Fichy47","Fichy47 - Fisch - V0.0.3 - discord.gg/fichy47")
+    local Windows = NEVERLOSE:AddWindow("oggsunny","oggsunny - Fisch - V0.0.1 - discord.gg/fichy47")
 
     local FishingTab = Windows:AddTab("Fishing", "earth")
 
