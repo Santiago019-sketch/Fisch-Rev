@@ -8,6 +8,7 @@ local replicatedStorage = game:GetService("ReplicatedStorage")
 local Services = {
     VirtualInputManager = game:GetService("VirtualInputManager")
 }
+local VIM = game:GetService("VirtualInputManager")
 
 -- Variables
 local autoReelEnabled = false
@@ -16,6 +17,44 @@ local autoCastEnabled = false
 local rodCastDistance = 29 -- Default cast distance
 local guiVisible = true
 local noButtonMove = false -- Added for the new auto shake functionality
+local CalibrationData = {
+    FishingRod = "Fishing Rod" -- Default name, will be updated dynamically
+}
+
+-- FischAPI Implementation
+local FischAPI = {}
+
+function FischAPI.TapShake()
+    local ShakeGUI = game:GetService("Players").LocalPlayer.PlayerGui:FindFirstChild("shakeui")
+    if ShakeGUI and ShakeGUI:FindFirstChild("safezone") and ShakeGUI.safezone:FindFirstChild("button") then
+        local Target = ShakeGUI.safezone.button
+        local GuiService = game:GetService("GuiService")
+    
+        GuiService.SelectedObject = Target
+    
+        VIM:SendKeyEvent(true, Enum.KeyCode.Return, false, nil)
+    
+        task.wait(0.005)
+    
+        VIM:SendKeyEvent(false, Enum.KeyCode.Return, false, nil)
+        return true
+    end
+    return false
+end
+
+function FischAPI.InstantReel()
+    game:GetService("ReplicatedStorage").events.reelfinished:FireServer(100, true)
+end
+
+function FischAPI.Cast()
+    local rod = getCurrentRod()
+    if rod then
+        CalibrationData.FishingRod = rod.Name
+        rod.events.cast:FireServer(rodCastDistance, 1)
+        return true
+    end
+    return false
+end
 
 -- GUI Setup
 local ScreenGui = Instance.new("ScreenGui")
@@ -178,6 +217,10 @@ end
 
 -- Function to perform a reel
 local function performReel()
+    -- Try FischAPI method first
+    FischAPI.InstantReel()
+    
+    -- Fallback method
     local args = {
         [1] = 100,  -- Success rate (100 is perfect)
         [2] = true  -- Success boolean
@@ -196,6 +239,12 @@ end
 
 -- Function to perform a cast
 local function performCast()
+    -- Try FischAPI method first
+    if FischAPI.Cast() then
+        return
+    end
+    
+    -- Fallback method
     local rod = getCurrentRod()
     if not rod then
         print("No fishing rod equipped!")
@@ -216,6 +265,12 @@ end
 
 -- Updated function to perform a shake using the new method
 local function performShake()
+    -- Try FischAPI method first
+    if FischAPI.TapShake() then
+        return
+    end
+    
+    -- Fallback method 1: Find and click shake button
     local shakeButton = Functions.ReturnShake()
     if shakeButton then
         -- If NoButtonMove is enabled, move the button to a consistent position
@@ -231,7 +286,7 @@ local function performShake()
         return
     end
     
-    -- Fallback methods if button not found
+    -- Fallback method 2: Try to find and fire shake event
     local rod = getCurrentRod()
     if not rod then
         print("No fishing rod equipped!")
@@ -245,7 +300,7 @@ local function performShake()
     if shakeEvent then
         shakeEvent:FireServer()
     else
-        -- Try to directly modify rod properties if event doesn't exist
+        -- Fallback method 3: Try to directly modify rod properties if event doesn't exist
         if rod:FindFirstChild("Handle") then
             local originalCFrame = rod.Handle.CFrame
             for i = 1, 5 do
@@ -370,3 +425,6 @@ notification.Parent = ScreenGui
 game:GetService("Debris"):AddItem(notification, 3)
 
 print("Fishing helper script loaded successfully!")
+
+-- Return FischAPI for external use
+return FischAPI
