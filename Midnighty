@@ -11,37 +11,70 @@ if not game:IsLoaded() then
     game.Loaded:Wait()
 end
 
--- Initialize UI Library with error handling
-local Fluent = nil
-local success, errorMsg = pcall(function()
-    Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
-end)
+-- Initialize UI Library with better error handling
+local Fluent
+local function loadFluent()
+    local success, result = pcall(function()
+        return loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
+    end)
+    
+    if success then
+        return result
+    else
+        warn("Failed to load Fluent library: " .. tostring(result))
+        -- Attempt secondary source as fallback
+        success, result = pcall(function()
+            return loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/source.lua"))()
+        end)
+        
+        if success then
+            return result
+        else
+            warn("Failed to load Fluent library from fallback: " .. tostring(result))
+            return nil
+        end
+    end
+end
 
-if not success or not Fluent then
-    warn("Failed to load Fluent library:", errorMsg)
+Fluent = loadFluent()
+
+if not Fluent then
+    warn("Critical error: Unable to load UI library. Script cannot continue.")
     return
 end
 
--- Load addons with error handling
-local SaveManager = nil
-success, errorMsg = pcall(function()
-    SaveManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/SaveManager.lua"))()
-end)
-
-if not success or not SaveManager then
-    warn("Failed to load SaveManager:", errorMsg)
-    return
+-- Load addons with better error handling
+local SaveManager
+local function loadSaveManager()
+    local success, result = pcall(function()
+        return loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/SaveManager.lua"))()
+    end)
+    
+    if success then
+        return result
+    else
+        warn("Failed to load SaveManager: " .. tostring(result))
+        return nil
+    end
 end
 
-local InterfaceManager = nil
-success, errorMsg = pcall(function()
-    InterfaceManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/InterfaceManager.lua"))()
-end)
+SaveManager = loadSaveManager()
 
-if not success or not InterfaceManager then
-    warn("Failed to load InterfaceManager:", errorMsg)
-    return
+local InterfaceManager
+local function loadInterfaceManager()
+    local success, result = pcall(function()
+        return loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/InterfaceManager.lua"))()
+    end)
+    
+    if success then
+        return result
+    else
+        warn("Failed to load InterfaceManager: " .. tostring(result))
+        return nil
+    end
 end
+
+InterfaceManager = loadInterfaceManager()
 
 -- Create Window
 local Window = Fluent:CreateWindow({
@@ -116,7 +149,11 @@ Tabs.Teleports:AddButton({
         if locations[SelectedIsland] then
             -- Add error handling for teleports
             local success, error = pcall(function()
-                LocalPlayer.Character.HumanoidRootPart.CFrame = locations[SelectedIsland]
+                if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                    LocalPlayer.Character.HumanoidRootPart.CFrame = locations[SelectedIsland]
+                else
+                    error("Character or HumanoidRootPart not found")
+                end
             end)
             
             if success then
@@ -227,23 +264,26 @@ Tabs.Sells:AddToggle("AutoSellToggle", {
         AutoSell = Value
         
         -- Auto sell loop
-        spawn(function()
-            while AutoSell do
-                if os.time() - lastSellTime >= sellCooldown then
-                    local success, error = pcall(function()
-                        workspace:WaitForChild("world"):WaitForChild("npcs"):WaitForChild("Marc Merchant"):WaitForChild("merchant"):WaitForChild("sellall"):InvokeServer()
-                    end)
-                    
-                    if success then
-                        lastSellTime = os.time()
-                        ShowNotification("Auto Sell", "Fish sold automatically.")
-                    else
-                        ShowNotification("Auto Sell Error", "Failed to sell fish: " .. tostring(error))
+        if AutoSell then
+            spawn(function()
+                while AutoSell do
+                    if os.time() - lastSellTime >= sellCooldown then
+                        local success, error = pcall(function()
+                            workspace:WaitForChild("world"):WaitForChild("npcs"):WaitForChild("Marc Merchant"):WaitForChild("merchant"):WaitForChild("sellall"):InvokeServer()
+                        end)
+                        
+                        if success then
+                            lastSellTime = os.time()
+                            ShowNotification("Auto Sell", "Fish sold automatically.")
+                        else
+                            -- Don't show error every time, it gets annoying
+                            -- ShowNotification("Auto Sell Error", "Failed to sell fish: " .. tostring(error))
+                        end
                     end
+                    wait(1)
                 end
-                wait(1)
-            end
-        end)
+            end)
+        end
     end
 })
 
@@ -270,7 +310,7 @@ local function isRod(item)
     
     if item and item:IsA("Tool") then
         for _, pattern in ipairs(rodPatterns) do
-            if item.Name:find(pattern) then
+            if string.find(item.Name, pattern) then
                 return true
             end
         end
@@ -282,9 +322,11 @@ end
 -- Function to get the currently equipped rod
 local function getEquippedRod()
     -- Check if any equipped item is a rod
-    for _, item in pairs(LocalPlayer.Character:GetChildren()) do
-        if item:IsA("Tool") and isRod(item) then
-            return item
+    if LocalPlayer.Character then
+        for _, item in pairs(LocalPlayer.Character:GetChildren()) do
+            if item:IsA("Tool") and isRod(item) then
+                return item
+            end
         end
     end
     return nil
@@ -329,7 +371,10 @@ local function universalFish()
         -- No rod equipped, try to equip one from backpack
         for _, item in pairs(LocalPlayer.Backpack:GetChildren()) do
             if isRod(item) then
-                item.Parent = LocalPlayer.Character
+                -- Safely equip the rod
+                pcall(function()
+                    item.Parent = LocalPlayer.Character
+                end)
                 ShowNotification("Fishing", "Equipped " .. item.Name)
                 wait(0.5) -- Wait for equip animation
                 equippedRod = item
@@ -348,7 +393,7 @@ local function universalFish()
         if not fishSuccess and equippedRod:FindFirstChild("events") then
             local events = equippedRod.events:GetChildren()
             for _, event in pairs(events) do
-                if event.Name:lower():find("cast") then
+                if string.find(string.lower(event.Name), "cast") then
                     local success, error = pcall(function()
                         event:FireServer(81.6, 1) -- Common cast arguments
                     end)
@@ -359,7 +404,7 @@ local function universalFish()
                         
                         -- Try to reel in
                         for _, reelEvent in pairs(events) do
-                            if reelEvent.Name:lower():find("reel") then
+                            if string.find(string.lower(reelEvent.Name), "reel") then
                                 pcall(function()
                                     reelEvent:FireServer(100, false)
                                 end)
@@ -399,7 +444,7 @@ local function universalFish()
             
             -- Try to find cast remote
             for _, remote in pairs(allRemotes) do
-                if remote.Name:lower():find("cast") or remote.Name:lower():find("throw") then
+                if string.find(string.lower(remote.Name), "cast") or string.find(string.lower(remote.Name), "throw") then
                     local success, error = pcall(function()
                         if remote:IsA("RemoteFunction") then
                             remote:InvokeServer()
@@ -413,7 +458,7 @@ local function universalFish()
                         
                         -- Try to find reel remote
                         for _, reelRemote in pairs(allRemotes) do
-                            if reelRemote.Name:lower():find("reel") or reelRemote.Name:lower():find("catch") then
+                            if string.find(string.lower(reelRemote.Name), "reel") or string.find(string.lower(reelRemote.Name), "catch") then
                                 pcall(function()
                                     if reelRemote:IsA("RemoteFunction") then
                                         reelRemote:InvokeServer()
@@ -453,15 +498,17 @@ Tabs.AutoFish:AddToggle("AutoFishToggle", {
         fishCount = 0 -- Reset fish count
         
         -- Auto fishing loop
-        spawn(function()
-            while AutoFishing do
-                local success = universalFish()
-                if success then
-                    fishCount = fishCount + 1
+        if AutoFishing then
+            spawn(function()
+                while AutoFishing do
+                    local success = universalFish()
+                    if success then
+                        fishCount = fishCount + 1
+                    end
+                    wait(waittime)
                 end
-                wait(waittime)
-            end
-        end)
+            end)
+        end
     end
 })
 
@@ -621,15 +668,24 @@ Tabs.Misc:AddButton({
 Tabs.Misc:AddButton({
     Title = "Infinite Yield",
     Callback = function()
-        loadstring(game:HttpGet('https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source'))()
-        ShowNotification("Loaded", "Infinite Yield admin commands loaded")
+        local success, error = pcall(function()
+            loadstring(game:HttpGet('https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source'))()
+        end)
+        
+        if success then
+            ShowNotification("Loaded", "Infinite Yield admin commands loaded")
+        else
+            ShowNotification("Error", "Failed to load Infinite Yield: " .. tostring(error))
+        end
     end
 })
 
 Tabs.Misc:AddButton({
     Title = "Reset Character",
     Callback = function()
-        LocalPlayer.Character:BreakJoints()
+        pcall(function()
+            LocalPlayer.Character:BreakJoints()
+        end)
         ShowNotification("Reset", "Character has been reset")
     end
 })
@@ -641,9 +697,11 @@ Tabs.Misc:AddSlider("WalkSpeedSlider", {
     Default = 16,
     Rounding = 0,
     Callback = function(Value)
-        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
-            LocalPlayer.Character.Humanoid.WalkSpeed = Value
-        end
+        pcall(function()
+            if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+                LocalPlayer.Character.Humanoid.WalkSpeed = Value
+            end
+        end)
     end
 })
 
@@ -654,9 +712,11 @@ Tabs.Misc:AddSlider("JumpPowerSlider", {
     Default = 50,
     Rounding = 0,
     Callback = function(Value)
-        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
-            LocalPlayer.Character.Humanoid.JumpPower = Value
-        end
+        pcall(function()
+            if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+                LocalPlayer.Character.Humanoid.JumpPower = Value
+            end
+        end)
     end
 })
 
@@ -677,20 +737,31 @@ local AntiAFK = Tabs.Misc:AddToggle("AntiAFKToggle", {
     end
 })
 
--- Initialize SaveManager
-SaveManager:SetLibrary(Fluent)
-InterfaceManager:SetLibrary(Fluent)
-SaveManager:IgnoreThemeSettings()
-SaveManager:SetIgnoreIndexes({"MinimizeKey"})
-InterfaceManager:SetFolder("FishingSimulator")
-SaveManager:SetFolder("FishingSimulator/Configs")
-SaveManager:BuildConfigSection(Tabs.Misc)
+-- Safe initialization of SaveManager and InterfaceManager
+if SaveManager then
+    SaveManager:SetLibrary(Fluent)
+    SaveManager:IgnoreThemeSettings()
+    SaveManager:SetIgnoreIndexes({"MinimizeKey"})
+    SaveManager:SetFolder("FishingSimulator/Configs")
+    
+    if Tabs.Misc then
+        SaveManager:BuildConfigSection(Tabs.Misc)
+    end
 
--- Load the interface
-InterfaceManager:BuildInterfaceSection(Tabs.Misc)
+    -- Load configs
+    pcall(function()
+        SaveManager:LoadAutoloadConfig()
+    end)
+end
 
--- Initialize
-SaveManager:LoadAutoloadConfig()
+if InterfaceManager then
+    InterfaceManager:SetLibrary(Fluent)
+    InterfaceManager:SetFolder("FishingSimulator")
+    
+    if Tabs.Misc then
+        InterfaceManager:BuildInterfaceSection(Tabs.Misc)
+    end
+end
 
 -- Initial notification
 ShowNotification("GUI Loaded", "Universal Fishing Simulator GUI is ready!")
