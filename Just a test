@@ -1,172 +1,1019 @@
 local FischAPI = {}
 
 local VIM = game:GetService("VirtualInputManager")
-local HttpService = game:GetService("HttpService")
-local Players = game:GetService("Players")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-local LocalPlayer = Players.LocalPlayer
-local PlayerGUI = LocalPlayer:FindFirstChildOfClass("PlayerGui")
-local LocalCharacter = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-local HumanoidRootPart = LocalCharacter:FindFirstChild("HumanoidRootPart")
+local VI = {}
 
 local Options = {
     AutoShake = false,
-    AutoReel = false,
+    AutoMinigame = false, --Later version
+    AutoMinigameBlatant = false,
     AutoCast = false,
-    AutoCastMode = "Legit",
-    AutoCastDelay = 2,
-    ZoneCast = false,
-    SelectedZone = nil,
+    PerfectCast = false, --Later version
     WebhookURL = "",
     WebhookNotifications = false,
-    AutoShakeMethod = "ClickEvent",
-    AutoShakeDelay = 1,
+    FloatOnWater = false,
+    Lock = false,
+    MegaladonHunting = false,
 }
 
 local Internal = {
-    FishingRods = {}, -- Store detected fishing rods
-    ZoneConnection = nil,
+    AutoMinigameDownPerUp = 2,
+    AutoMinigameDownPerUpInternal = 2,
+    Timer = 301,
+    FloatPart = nil,
+    LockedPosition = nil,
+    MegaladonPosition = nil,
+    Megaladon = false,
+    MegHuntPlat = nil,
+    MegHuntPos = nil,
+    FishingRods = {} -- Store all fishing rods
 }
+
+local Utils = {}
+
+local UI = {}
+
+local CalibrationData = {}
 
 local FischUser = {}
 
 local NEVERLOSE = loadstring(game:HttpGet("https://raw.githubusercontent.com/IayZBoy/TrollScripts/main/randomuilib.lua"))()
-local Notification = NEVERLOSE.Notification()
+
+local Notification = NEVERLOSE.Notification();
+
 NEVERLOSE:Theme("dark")
 
--- UI Setup
-local Windows = NEVERLOSE:AddWindow("Fishing Hub", "Fishing Script - Modified")
-local MainTab = Windows:AddTab("Main", "earth")
-local MechanicsSection = MainTab:AddSection("Mechanics", "left")
+--UI
 
--- Scan for all available rods
-function FischUser.ScanForRods()
+for Setting, Value in pairs(Options) do
+    if Value == false then
+        UI[Setting] = function(Val)
+            Options[Setting] = Val
+        end
+    end
+end
+
+function UI.Initialize()
+    --UI
+
+    local Windows = NEVERLOSE:AddWindow("Fichy47","Fichy47 - Fisch - V0.0.4 - discord.gg/fichy47")
+
+    local FishingTab = Windows:AddTab("Fishing", "earth")
+
+    local Interactions = Windows:AddTab("Interactions", "list")
+
+    local AreaTeleportsTab = Windows:AddTab("Area Teleports", "earth")
+
+    local MegaladonHunting = Windows:AddTab("Megaladon Hunting", "earth")
+
+    local WebhookTab = Windows:AddTab("Webhook", "list")
+
+    local MechanicsSection = FishingTab:AddSection("Mechanics", "left")
+
+    local Convenience = FishingTab:AddSection("Convenience", "left")
+    
+    local RodSelector = FishingTab:AddSection("Rod Selection", "right")
+
+    local CreditsSection = FishingTab:AddSection("Credits", "right")
+
+    local Teleports = AreaTeleportsTab:AddSection("Teleports", "left")
+
+    local Actions = Interactions:AddSection("Actions", "left")
+
+    local WebhookSection = WebhookTab:AddSection("Webhook", "left")
+
+    Actions:AddButton("Sell All",  FischUser.Sell)
+
+    Convenience:AddToggle("Float On Water", false, UI.FloatOnWater)
+
+    Convenience:AddLabel("Turn ON to walk around and choose spot.")
+    
+    Convenience:AddLabel("Turn OFF to choose your position.")
+
+    Convenience:AddToggle("Lock Position", false, function(v) 
+        Internal.LockedPosition = game.Players.LocalPlayer.Character.HumanoidRootPart.Position
+        UI.Lock(v) 
+    end)
+
+    MechanicsSection:AddToggle("Auto Shake", false, UI.AutoShake)
+
+    MechanicsSection:AddToggle("Auto Reel (Blatant)", false, UI.AutoMinigameBlatant)
+
+    MechanicsSection:AddToggle("Auto Cast", false, UI.AutoCast)
+    
+    -- Rod Selection Dropdown
+    local rodNames = {}
+    for rod, _ in pairs(Internal.FishingRods) do
+        table.insert(rodNames, rod)
+    end
+    
+    if #rodNames > 0 then
+        RodSelector:AddDropdown("Select Rod", rodNames, rodNames[1], function(selected)
+            CalibrationData.ActiveFishingRod = selected
+            Notification:Notify("info", "Rod Selection", "Selected rod: " .. selected, 3)
+        end)
+        
+        RodSelector:AddButton("Equip Selected Rod", function()
+            if CalibrationData.ActiveFishingRod then
+                FischUser.EquipRod(CalibrationData.ActiveFishingRod)
+            else
+                Notification:Notify("warning", "No Rod Selected", "Please select a rod first", 3)
+            end
+        end)
+    else
+        RodSelector:AddLabel("No fishing rods found in inventory")
+    end
+
+    WebhookSection:AddTextBox(
+        "Webhook URL", 
+        "", 
+        function(text)
+            Options.WebhookURL = text
+            Notification:Notify("info", "Set Webhook Successfully", "Set webhook to "..text, 5)
+        end
+    )
+
+    WebhookSection:AddToggle(
+        "Send Webhook Notifications",
+        false,
+        UI.WebhookNotifications
+    )
+
+    for Place, Position in pairs(CalibrationData.Positions) do
+        Teleports:AddButton(
+            "Teleport to "..Place,
+            function()
+                game.Players.LocalPlayer.Character.HumanoidRootPart.Position = Position
+            end
+        )
+    end
+
+    local MegHunt = MegaladonHunting:AddSection("Hunting", "left")
+
+    local HuntOrNo = MegHunt:AddToggle("Hunt Megaladon", false, UI.MegaladonHunting)
+
+    MegHunt:AddLabel("If a Megaladon is spotted within the server,")
+    MegHunt:AddLabel("it will override all options and")
+    MegHunt:AddLabel("hunt for it.")
+    MegHunt:AddLabel("It will go back to normal once you or someone else")
+    MegHunt:AddLabel("has caught it.")
+
+    Actions:AddButton("Open/Close Boat UI", function() 
+        FischUser.OpenBoatUI()
+    end)
+
+    CreditsSection:AddLabel("Fichy47 Script by dynamicarrays")
+    CreditsSection:AddLabel("Modified for any rod by Claude")
+    CreditsSection:AddButton(
+        "Discord",
+        function()
+            setclipboard("discord.gg/fichy47")
+        end
+    )
+
+    local AbundanceZoneSection = FishingTab:AddSection("Abundances", "right")
+    
+    local Ab = {}
+
+    local Ab2 = {}
+
+    local Choice = nil
+
+    local LabeledChance = nil
+
+    local AbundanceChoice = AbundanceZoneSection:AddDropdown("Abundances", Ab, "Loading", function(D)
+        LabeledChance:Text("Chance: "..tostring(Ab2[D].Chance).."%")
+        Choice = Ab2[D]
+    end)
+
+    LabeledChance = AbundanceZoneSection:AddLabel("Chance: 0%")
+
+    local GotoAbundance = AbundanceZoneSection:AddButton("Go to Abundance", function() 
+        game.Players.LocalPlayer.Character.HumanoidRootPart.Position = Vector3.new(Choice.Position.X, 137.77, Choice.Position.Z)
+    end)
+
+    local FishRadarPlaces = {}
+
+    local I = 0
+
+    while I < 100 do
+        I = I + 1
+        FishingTab:AddSection("Scrolling Space", "right")
+    end
+
+    while task.wait(5) do
+        local Places = FischAPI.GetAllAbundanceZones()
+        Ab2 = Places
+        Ab = {}
+        local FoundMeg = false
+        for Fish, Info in pairs(Ab2) do
+            if string.match(Fish, "Megalodon") then
+                Internal.Megaladon = true
+                FoundMeg = true
+                Internal.MegaladonPosition = Info.Position
+            end
+            table.insert(Ab, Fish)
+        end
+        if FoundMeg == false then
+            Internal.Megaladon = false
+            Internal.MegaladonPosition = nil
+            pcall(function()  
+                Internal.MegHuntPlat:Destroy()
+            end)
+        end
+        AbundanceChoice:Refresh(Ab)
+    end
+end
+
+--Utils
+
+function Utils.Overlap(gui1, gui2)
+    local gui1_topLeft = gui1.AbsolutePosition
+    local gui1_bottomRight = gui1_topLeft + gui1.AbsoluteSize
+
+    local gui2_topLeft = gui2.AbsolutePosition
+    local gui2_bottomRight = gui2_topLeft + gui2.AbsoluteSize
+    
+    return ((gui1_topLeft.x < gui2_bottomRight.x and gui1_bottomRight.x > gui2_topLeft.x) and (gui1_topLeft.y < gui2_bottomRight.y and gui1_bottomRight.y > gui2_topLeft.y))
+end
+
+function Utils.SendWebhookData(Link, Text)
+    local DataForm = Text
+    local maxLength = 1950
+    local chunks = {}
+    local HttpService = game:GetService("HttpService")
+
+    while #DataForm > 0 do
+        local chunk = DataForm:sub(1, maxLength)
+        if #DataForm > maxLength then
+            local lastNewline = chunk:match(".*\n()")
+            if lastNewline then
+                chunk = DataForm:sub(1, lastNewline - 1)
+            end
+        end
+        table.insert(chunks, chunk)
+        DataForm = DataForm:sub(#chunk + 1)
+    end
+
+    for i, chunk in chunks do
+        local data = {
+            content = chunk
+        }
+        
+        request({
+            Url = Link,
+            Method = "POST",
+            Headers = {
+                ["Content-Type"] = "application/json"
+            },
+            Body = HttpService:JSONEncode(data)
+        })
+    end
+end
+
+-- Find all fishing rods in player inventory
+function Utils.ScanForRods()
     Internal.FishingRods = {}
-
-    for _, item in pairs(LocalPlayer.Backpack:GetChildren()) do
+    
+    -- Check backpack
+    for _, item in pairs(game.Players.LocalPlayer.Backpack:GetChildren()) do
         if item:IsA("Tool") and item:FindFirstChild("events") and item.events:FindFirstChild("cast") then
             Internal.FishingRods[item.Name] = item
         end
     end
+    
+    -- Check equipped items
+    for _, item in pairs(game.Players.LocalPlayer.Character:GetChildren()) do
+        if item:IsA("Tool") and item:FindFirstChild("events") and item.events:FindFirstChild("cast") then
+            Internal.FishingRods[item.Name] = item
+            CalibrationData.FishingRod = item.Name -- Set currently equipped rod
+        end
+    end
+    
+    -- Set default active rod if we found any
+    for rodName, _ in pairs(Internal.FishingRods) do
+        CalibrationData.ActiveFishingRod = rodName
+        break
+    end
+    
+    return Internal.FishingRods
 end
 
--- Auto Cast
-MainTab:AddToggle("Auto Cast", false, function(Value)
-    Options.AutoCast = Value
-    if Value then
-        FischUser.StartAutoCast()
+--VI
+
+VI.State = false
+
+function VI.ClickUI(ui)
+    local x = ui.AbsolutePosition.X + (ui.AbsoluteSize.X / 2)
+    local y = ui.AbsolutePosition.Y + (ui.AbsoluteSize.Y / 2)
+    VIM:SendMouseButtonEvent(x, y, 0, true, game, 0)
+    task.wait(0.05)
+    VIM:SendMouseButtonEvent(x, y, 0, false, game, 0)
+end
+
+function VI.Down(ui)
+    VI.State = true
+    local x = ui.AbsolutePosition.X + (ui.AbsoluteSize.X / 2)
+    local y = ui.AbsolutePosition.Y + (ui.AbsoluteSize.Y / 2)
+    VIM:SendMouseButtonEvent(x, y, 0, true, game, 0)
+end
+
+function VI.Up(ui)
+    VI.State = false
+    local x = ui.AbsolutePosition.X + (ui.AbsoluteSize.X / 2)
+    local y = ui.AbsolutePosition.Y + (ui.AbsoluteSize.Y / 2)
+    VIM:SendMouseButtonEvent(x, y, 0, false, game, 0)
+end
+
+--API
+
+function FischAPI.TapShake()
+    local ShakeGUI = game:GetService("Players").LocalPlayer.PlayerGui:FindFirstChild("shakeui")
+    local Target = ShakeGUI.safezone.button
+    local GuiService = game:GetService("GuiService")
+
+    GuiService.SelectedObject = Target
+
+    VIM:SendKeyEvent(true, Enum.KeyCode.Return, false, nil)
+
+    task.wait(0.005)
+
+    VIM:SendKeyEvent(false, Enum.KeyCode.Return, false, nil)
+end
+
+function FischAPI.InstantReel()
+    game:GetService("ReplicatedStorage").events.reelfinished:FireServer(100, true)
+end
+
+function FischAPI.Cast()
+    function AutoFish5()
+    if autoShake3 then
+        task.spawn(function()
+            while autoReel do
+                local PlayerGUI = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
+                local shakeUI = PlayerGUI:FindFirstChild("shakeui")
+                if shakeUI and shakeUI.Enabled then
+                    local safezone = shakeUI:FindFirstChild("safezone")
+                    if safezone then
+                        local button = safezone:FindFirstChild("button")
+                        if button and button:IsA("ImageButton") and button.Visible then
+                            if autoShake then
+                                local pos = button.AbsolutePosition
+                                local size = button.AbsoluteSize
+                                VirtualInputManager:SendMouseButtonEvent(pos.X + size.X / 2, pos.Y + size.Y / 2, 0, true, game:GetService("Players").LocalPlayer, 0)
+                                VirtualInputManager:SendMouseButtonEvent(pos.X + size.X / 2, pos.Y + size.Y / 2, 0, false, game:GetService("Players").LocalPlayer, 0)
+                            elseif autoShake2 then
+                                GuiService.SelectedObject = button
+                                VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.Return, false, game)
+                                VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.Return, false, game)
+                            end
+                        end
+                    end
+                end
+                task.wait()
+            end
+        end)
     else
-        FischUser.StopAutoCast()
-    end
-end)
-
-MainTab:AddDropdown("Auto Cast Mode", {"Legit", "Rage"}, "Legit", function(Selected)
-    Options.AutoCastMode = Selected
-end)
-
-MainTab:AddSlider("Auto Cast Cooldown", 1, 10, 2, function(Value)
-    Options.AutoCastDelay = Value
-end)
-
-function FischUser.StartAutoCast()
-    FischUser.ScanForRods()
-    task.spawn(function()
-        while Options.AutoCast do
-            local Rod = LocalCharacter:FindFirstChildOfClass("Tool")
-            if Rod and Rod:FindFirstChild("events"):FindFirstChild("cast") then
-                task.wait(Options.AutoCastDelay)
-                if Options.AutoCastMode == "Legit" then
-                    VIM:SendMouseButtonEvent(0, 0, 0, true, game, 0)
-                    task.wait(0.1)
-                    VIM:SendMouseButtonEvent(0, 0, 0, false, game, 0)
-                elseif Options.AutoCastMode == "Rage" then
-                    Rod.events.cast:FireServer(100)
+        task.spawn(function()
+            while autoReel do
+                task.wait(autoShakeDelay)
+                local PlayerGUI = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
+                local shakeUI = PlayerGUI:FindFirstChild("shakeui")
+                if shakeUI and shakeUI.Enabled then
+                    local safezone = shakeUI:FindFirstChild("safezone")
+                    if safezone then
+                        local button = safezone:FindFirstChild("button")
+                        if button and button:IsA("ImageButton") and button.Visible then
+                            if autoShake then
+                                local pos = button.AbsolutePosition
+                                local size = button.AbsoluteSize
+                                VirtualInputManager:SendMouseButtonEvent(pos.X + size.X / 2, pos.Y + size.Y / 2, 0, true, game:GetService("Players").LocalPlayer, 0)
+                                VirtualInputManager:SendMouseButtonEvent(pos.X + size.X / 2, pos.Y + size.Y / 2, 0, false, game:GetService("Players").LocalPlayer, 0)
+                            elseif autoShake2 then
+                                GuiService.SelectedObject = button
+                                VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.Return, false, game)
+                                VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.Return, false, game)
+                            end
+                        end
+                    end
                 end
             end
-            task.wait()
-        end
-    end)
-end
-
-function FischUser.StopAutoCast()
-    -- Stops Auto Cast Loop
-end
-
--- Zone Cast
-MainTab:AddToggle("Zone Cast", false, function(Value)
-    Options.ZoneCast = Value
-end)
-
-MainTab:AddDropdown("Select Fishing Zone", {"Zone1", "Zone2", "Zone3"}, "Zone1", function(Selected)
-    Options.SelectedZone = Selected
-end)
-
--- Auto Reel
-MainTab:AddToggle("Auto Reel", false, function(Value)
-    Options.AutoReel = Value
-    task.spawn(function()
-        while Options.AutoReel do
-            task.wait(Options.AutoCastDelay)
-            ReplicatedStorage.events.reelfinished:FireServer(100, false)
-        end
-    end)
-end)
-
-MainTab:AddSlider("Auto Reel Cooldown", 0, 10, 1, function(Value)
-    Options.AutoCastDelay = Value
-end)
-
--- Auto Shake
-MainTab:AddToggle("Auto Shake", false, function(Value)
-    Options.AutoShake = Value
-end)
-
-MainTab:AddDropdown("Auto Shake Mode", {"ClickEvent", "KeyCodeEvent"}, "ClickEvent", function(Selected)
-    Options.AutoShakeMethod = Selected
-end)
-
-MainTab:AddSlider("Auto Shake Cooldown", 0, 10, 1, function(Value)
-    Options.AutoShakeDelay = Value
-end)
-
--- Rod Selection Dropdown
-local rodNames = {}
-for rod, _ in pairs(Internal.FishingRods) do
-    table.insert(rodNames, rod)
-end
-
-local RodSelector = MainTab:AddSection("Rod Selection", "right")
-
-RodSelector:AddDropdown("Select Rod", rodNames, rodNames[1] or "", function(selected)
-    CalibrationData.ActiveFishingRod = selected
-    Notification:Notify("info", "Rod Selection", "Selected rod: " .. selected, 3)
-end)
-
-RodSelector:AddButton("Equip Selected Rod", function()
-    if CalibrationData.ActiveFishingRod then
-        FischUser.EquipRod(CalibrationData.ActiveFishingRod)
-    else
-        Notification:Notify("warning", "No Rod Selected", "Please select a rod first", 3)
+        end)
     end
-end)
+end
 
--- Equip Rod
+function FischAPI.GetAllAbundanceZones()
+    local Abundances = {}
+    for i, Zone in pairs(game:GetService("Workspace").zones.fishing:GetChildren()) do
+        local Info = {}
+        if Zone:FindFirstChild("Abundance") then
+            if Zone:FindFirstChild("Abundance"):FindFirstChild("Chance") then
+                Info.Chance = Zone.Abundance.Chance.Value
+            else
+                Info.Chance = 1
+            end
+            Info.Position = Zone.Position
+            if Abundances[Zone.Abundance.Value] == nil then
+                Abundances[Zone.Abundance.Value] = Info
+            elseif Abundances[Zone.Abundance.Value].Chance < Info.Chance then
+                Abundances[Zone.Abundance.Value] = Info
+            end
+        end
+    end
+    return Abundances
+end
+
+function FischAPI.SellAll()
+    workspace.world.npcs["Marc Merchant"].merchant.sellall:InvokeServer()
+end
+
+function FischAPI.InitializePossibleDetections(Power)
+    --This is just for guidement, don't use this function lol
+    game:GetService("ReplicatedStorage").modules.fishing.rodresources.events.cast:FireServer(Power,1)
+end
+
+function FischAPI.DetermineClickActionMinigame()
+
+end
+
+function FischAPI.GetFish()
+    local Text = "Items/Fish:\n"
+    for i, v in pairs(game.Players.LocalPlayer.Backpack:GetChildren()) do
+        Text=Text..v.Name.."\n"
+    end
+    return Text
+end
+
+--User
+
+function FischUser.Sell()
+    FischAPI.SellAll()
+end
+
+function FischUser.AutoShake()
+    FischAPI.TapShake()
+end
+
+function FischUser.OpenBoatUI()
+    game:GetService("Players").LocalPlayer.PlayerGui.hud.safezone.shipwright.Visible = not game:GetService("Players").LocalPlayer.PlayerGui.hud.safezone.shipwright.Visible
+end
+
+function FischUser.LockPosition()
+    if Internal.Megaladon == true then
+        if Options.MegaladonHunting == true then
+            game.Players.LocalPlayer.Character.HumanoidRootPart.Position = Internal.MegHuntPos
+            return
+        end
+    end
+    game.Players.LocalPlayer.Character.HumanoidRootPart.Position = Internal.LockedPosition
+end
+
+function FischUser.FloatOnWater()
+    pcall(function()
+        Internal.FloatPart:Destroy()
+    end)
+    Internal.FloatPart = Instance.new("Part", workspace)
+    Internal.FloatPart.Anchored = true
+    Internal.FloatPart.Size = Vector3.new(10,1,10)
+    Internal.FloatPart.Position = Vector3.new(game.Players.LocalPlayer.Character.HumanoidRootPart.Position.X, 133.77, game.Players.LocalPlayer.Character.HumanoidRootPart.Position.Z)
+    game.Players.LocalPlayer.Character.HumanoidRootPart.Position = Vector3.new(game.Players.LocalPlayer.Character.HumanoidRootPart.Position.X, 150, game.Players.LocalPlayer.Character.HumanoidRootPart.Position.Z)
+end
+
 function FischUser.EquipRod(rodName)
     if Internal.FishingRods[rodName] then
-        local player = Players.LocalPlayer
+        -- If the rod is in backpack, equip it
+        local player = game.Players.LocalPlayer
         local rod = player.Backpack:FindFirstChild(rodName)
         if rod then
             rod.Parent = player.Character
             CalibrationData.FishingRod = rodName
             Notification:Notify("info", "Rod Equipped", "Successfully equipped " .. rodName, 3)
         else
-            Notification:Notify("warning", "Rod Not Found", "Could not find " .. rodName .. " in backpack", 3)
+            -- Check if already equipped
+            if player.Character:FindFirstChild(rodName) then
+                Notification:Notify("info", "Rod Already Equipped", rodName .. " is already equipped", 3)
+                CalibrationData.FishingRod = rodName
+            else
+                Notification:Notify("warning", "Rod Not Found", "Could not find " .. rodName .. " in backpack", 3)
+                -- Refresh rod list
+                Utils.ScanForRods()
+            end
+        end
+    else
+        Notification:Notify("warning", "Rod Not Available", "Rod " .. rodName .. " not found. Refreshing rod list", 3)
+        -- Refresh rod list
+        Utils.ScanForRods()
+    end
+end
+
+function FischUser.AutoMinigame()
+    local action = FischAPI.DetermineClickActionMinigame()
+    local PlayerBar = game:GetService("Players").LocalPlayer.PlayerGui.reel.bar.playerbar
+    if action == true then
+        if VI.State == false then
+            VI.Down(PlayerBar)
+        end
+    else
+        if VI.State == true then
+            VI.Up(PlayerBar)
         end
     end
 end
 
--- Initialize script
-Notification:Notify("info", "Fishing Script Loaded", "Ready to fish!", 5)
+function FischUser.SecondUpdateWebhook()
+    local a, b = pcall(function()
+        Internal.Timer = Internal.Timer + 1
+        if Internal.Timer >= 300 then
+            Internal.Timer = 0
+            local Data = FischAPI.GetFish()
+            Utils.SendWebhookData(Options.WebhookURL, Data)
+            Notification:Notify("info", "Webhook Notification Sent", "The next webhook notification is in 5 minutes", 5)
+        end
+    end)
+    if not a then
+        print("Webhook error:", b)
+    end
+end
+
+function FischUser.AutoCast()
+    FischAPI.Cast()
+end
+
+function FischUser.AutoReel()
+    FischAPI.InstantReel()
+end
+
+function FischUser.StepLoop()
+    if Options.FloatOnWater == true then
+        pcall(function()
+            FischUser.FloatOnWater()
+        end)
+    end
+    if Options.AutoShake == true then
+        pcall(function()
+            FischUser.AutoShake()
+        end)
+    end
+    if Options.AutoMinigameBlatant == true then
+        pcall(function()
+            FischUser.AutoReel()
+        end)
+    end
+end
+
+function FischUser.MegaladonHuntInstant()
+    if Internal.Megaladon == true then
+        if Internal.MegHuntPlat then
+            return
+        end
+        game.Players.LocalPlayer.Character.HumanoidRootPart.Position = Vector3.new(Internal.MegaladonPosition.X, 150.77, Internal.MegaladonPosition.Z)
+        Internal.MegHuntPlat = Instance.new("Part", workspace)
+        Internal.MegHuntPlat.Anchored = true
+        Internal.MegHuntPlat.Size = Vector3.new(10,1,10)
+        Internal.MegHuntPlat.Position = Vector3.new(game.Players.LocalPlayer.Character.HumanoidRootPart.Position.X, 133.77, game.Players.LocalPlayer.Character.HumanoidRootPart.Position.Z)
+        game.Players.LocalPlayer.Character.HumanoidRootPart.Position = Vector3.new(game.Players.LocalPlayer.Character.HumanoidRootPart.Position.X, 150, game.Players.LocalPlayer.Character.HumanoidRootPart.Position.Z)
+        task.wait(5)
+        Internal.MegHuntPos = game.Players.LocalPlayer.Character.HumanoidRootPart.Position
+    end
+end
+
+function FischUser.Heartbeat()
+    if Options.MegaladonHunting == true then
+        FischUser.MegaladonHuntInstant()
+    end
+end
+
+function FischUser.OneStep()
+    -- Rescan for rods periodically to catch newly acquired rods
+    spawn(function()
+        while task.wait(30) do
+            pcall(function()
+                Utils.ScanForRods()
+            end)
+        end
+    end)
+end
+
+function FischUser.Relaxed1Sec()
+    if Options.WebhookNotifications == true then
+        pcall(function()
+            FischUser.SecondUpdateWebhook()
+        end)
+    end
+    if Options.AutoCast == true then
+        pcall(function()
+            if Options.Lock == true then
+                FischUser.LockPosition()
+            end
+            FischUser.AutoCast()
+        end)
+    end
+end
+
+function FischUser.Initialize()
+    spawn(function()
+        game:GetService("RunService").RenderStepped:Connect(function()
+            FischUser.Heartbeat()
+        end)
+    end)
+    spawn(function()
+        FischUser.OneStep()
+    end)
+    spawn(function()
+        while task.wait(0.005) do
+            pcall(function()
+                FischUser.StepLoop()
+            end)
+        end
+    end)
+    spawn(function()
+        while task.wait(1) do
+            FischUser.Relaxed1Sec()
+        end
+    end)
+end
+
+Notification:Notify(
+    "info",
+    "Calibration",
+    "Initializing Fishing Script...",
+    5
+)
+
+local function initialize()
+    local success, err = pcall(function()
+        -- Scan for all rods first
+        Utils.ScanForRods()
+        
+        -- Get positions for teleports
+        CalibrationData.Positions = {}
+        for _, v in pairs(game:GetService("Workspace").zones.player:GetChildren()) do
+            CalibrationData.Positions[v.Name] = v.Position
+        end
+        
+        -- If we didn't find any fishing rod, notify user
+        if not next(Internal.FishingRods) then
+            Notification:Notify(
+                "warning",
+                "No Fishing Rods Found",
+                "No fishing rods found in inventory or equipped. The script will still work, but you need to get a rod.",
+                5
+            )
+        else
+            local rodCount = 0
+            local rodList = ""
+            for rodName, _ in pairs(Internal.FishingRods) do
+                rodCount = rodCount + 1
+                rodList = rodList .. rodName .. ", "
+            end
+            rodList = rodList:sub(1, -3) -- Remove last comma and space
+            
+            Notification:Notify(
+                "success",
+                "Rods Found",
+                "Found " .. rodCount .. " fishing rod(s): " .. rodList,
+                5
+            )
+        end
+    end)
+    
+    if not success then
+        Notification:Notify(
+            "error",
+            "Initialization Error",
+            "Error: " .. (err or "Unknown error"),
+            5
+        )
+        task.wait(5)
+        return false
+    end
+    
+    return true
+end
+
+-- Try to initialize, and if successful, start the script
+if initialize() then
+    Notification:Notify(
+        "success",
+        "Initialization Successful",
+        "Starting fishing script...",
+        5
+    )
+    task.wait(1)
+    FischUser.Initialize()
+    UI.Initialize()
+else
+    -- If initialization failed, retry every 10 seconds
+    spawn(function()
+        while true do
+            task.wait(10)
+            Notification:Notify(
+                "info",
+                "Retrying Initialization",
+                "Attempting to reinitialize...",
+                3
+            )
+            if initialize() then
+                Notification:Notify(
+                    "success",
+                    "Initialization Successful",
+                    "Starting fishing script...",
+                    5
+                )
+                task.wait(1)
+                FischUser.Initialize()
+                UI.Initialize()
+                break
+            end
+        end
+    end)
+end
 
 return FischAPI
+
+Add stuff from from this👇
+
+Main Tab
+local MainTab = Window:MakeTab({
+    Name = "Main",
+    Icon = "rbxassetid://4483362458",
+    PremiumOnly = false
+})
+ 
+local autoCast = false
+local autoCastMode = "Legit"
+local autoCastDelay = 2
+local autoCastConnection, autoCastConnection2
+
+MainTab:AddToggle({
+    Name = "Auto Cast",
+    Default = false,
+    Callback = function(Value)
+        autoCast = Value
+        if autoCast then
+            autoCastConnection = LocalCharacter.ChildAdded:Connect(function(child)
+                if child:IsA("Tool") and child:FindFirstChild("events"):WaitForChild("cast") and autoCast then
+                    task.wait(autoCastDelay)
+                    if autoCastMode == "Legit" then
+                        VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, LocalPlayer, 0)
+                        HumanoidRootPart.ChildAdded:Connect(function()
+                            if HumanoidRootPart:FindFirstChild("power") and HumanoidRootPart.power.powerbar.bar then
+                                HumanoidRootPart.power.powerbar.bar.Changed:Connect(function(property)
+                                    if property == "Size" and HumanoidRootPart.power.powerbar.bar.Size == UDim2.new(1, 0, 1, 0) then
+                                        VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, LocalPlayer, 0)
+                                    end
+                                end)
+                            end
+                        end)
+                    elseif autoCastMode == "Rage" then
+                        child.events.cast:FireServer(100)
+                    end
+                end
+            end)
+
+            autoCastConnection2 = PlayerGUI.ChildRemoved:Connect(function(GUI)
+                local Tool = LocalCharacter:FindFirstChildOfClass("Tool")
+                if GUI.Name == "reel" and autoCast and Tool and Tool:FindFirstChild("events"):WaitForChild("cast") then
+                    task.wait(autoCastDelay)
+                    if autoCastMode == "Legit" then
+                        VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, LocalPlayer, 0)
+                        HumanoidRootPart.ChildAdded:Connect(function()
+                            if HumanoidRootPart:FindFirstChild("power") and HumanoidRootPart.power.powerbar.bar then
+                                HumanoidRootPart.power.powerbar.bar.Changed:Connect(function(property)
+                                    if property == "Size" and HumanoidRootPart.power.powerbar.bar.Size == UDim2.new(1, 0, 1, 0) then
+                                        VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, LocalPlayer, 0)
+                                    end
+                                end)
+                            end
+                        end)
+                    elseif autoCastMode == "Rage" then
+                        Tool.events.cast:FireServer(100)
+                    end
+                end
+            end)
+        else
+            if autoCastConnection then
+                autoCastConnection:Disconnect()
+                autoCastConnection = nil
+            end
+            if autoCastConnection2 then
+                autoCastConnection2:Disconnect()
+                autoCastConnection2 = nil
+            end
+        end
+    end,
+})
+
+MainTab:AddDropdown({
+    Name = "Auto Cast Mode",
+    Options = {"Legit", "Rage"},
+    Callback = function(Selected)
+        autoCastMode = Selected
+    end,
+})
+
+MainTab:AddSlider({
+    Name = "Auto Cast Cooldown",
+    Min = 1,
+    Max = 10,
+    Increment = 0.1,
+    Default = 2,
+    Callback = function(Value)
+        autoCastDelay = Value
+    end,
+})
+ 
+-- Initialize ZoneCast settings
+local ZoneCast = false
+local SelectedZone = nil
+local ZonesList = {}
+
+-- Fill ZonesList with unique fishing zones based on names
+for _, zone in pairs(FishingZonesFolder:GetChildren()) do
+    if not table.find(ZonesList, zone.Name) then
+        table.insert(ZonesList, zone.Name)
+    end
+end
+
+-- Zone Cast Toggle
+MainTab:AddToggle({
+    Name = "Zone Cast",
+    Default = false,
+    Callback = function(Value)
+        ZoneCast = Value
+        if ZoneCast then
+            -- Start teleporting the 'blehh' part when ZoneCast is enabled
+            ZoneConnection = LocalCharacter.ChildAdded:Connect(function(child)
+                if ZoneCast and child:IsA("Tool") and SelectedZone then
+                    child.ChildAdded:Connect(function(blehh)
+                        if blehh.Name == "bobber" then
+                            local RopeConstraint = blehh:FindFirstChildOfClass("RopeConstraint")
+                            
+                            -- Ensure RopeConstraint length is set correctly even after teleportation
+                            if RopeConstraint then
+                                RopeConstraint.Length = math.huge
+                                RopeConstraint.Changed:Connect(function(property)
+                                    if property == "Length" then
+                                        RopeConstraint.Length = math.huge
+                                    end
+                                end)
+                            end
+
+                            -- Immediately move 'blehh' to the selected zone's position
+                            task.wait(1)
+                            while ZoneCast and blehh.Parent do
+                                -- Find the zone by its name in FishingZonesFolder
+                                local zoneObject = FishingZonesFolder:FindFirstChild(SelectedZone)
+                                if zoneObject then
+                                    -- Teleport the bobber (blehh) to the zone
+                                    -- Add an offset for Z-axis if necessary, here adding 5 studs in the Y-axis
+                                    blehh.CFrame = zoneObject.CFrame * CFrame.new(0, 5, 0)
+                                end
+                                task.wait()
+                            end
+
+                            -- Lock the player in place using BodyPosition
+                            local humanoidRootPart = LocalCharacter:FindFirstChild("HumanoidRootPart")
+                            if humanoidRootPart then
+                                -- Create a BodyPosition to lock the position
+                                local bodyPosition = Instance.new("BodyPosition")
+                                bodyPosition.MaxForce = Vector3.new(100000, 100000, 100000)  -- Max force for all axes
+                                bodyPosition.D = 1000  -- Damping (how quickly it stops oscillation)
+                                bodyPosition.P = 10000  -- Power (how strong the force is applied)
+                                bodyPosition.Position = humanoidRootPart.Position  -- Lock to the current position
+                                bodyPosition.Parent = humanoidRootPart  -- Attach it to the root part
+
+                                -- Wait before unfreezing the player (give time for fishing to start)
+                                task.wait(1)
+
+                                -- Remove the BodyPosition to allow movement again
+                                bodyPosition:Destroy()
+                            end
+                        end
+                    end)
+                end
+            end)
+        else
+            -- Disconnect the ZoneCast when the toggle is off
+            if ZoneConnection then
+                ZoneConnection:Disconnect()
+                ZoneConnection = nil
+            end
+        end
+    end,
+})
+
+-- Fishing Zone Dropdown for selection
+MainTab:AddDropdown({
+    Name = "Select Fishing Zone",
+    Options = ZonesList,
+    Callback = function(Selected)
+        SelectedZone = Selected  -- Store the selected zone name
+    end,
+})
+ 
+-- Variables to hold the state and configurations
+local autoReel = false
+local autoReelDelay = 1
+local autoShake = false
+local autoShakeDelay = 1
+local autoShakeMethod = "ClickEvent"
+ 
+-- Auto Reel
+MainTab:AddToggle({
+    Name = "Auto Reel",
+    Default = false,
+    Callback = function(Value)
+        autoReel = Value
+        if autoReel then
+            autoreelandshakeConnection = PlayerGUI.ChildAdded:Connect(function(GUI)
+                if GUI:IsA("ScreenGui") and GUI.Name == "reel" then
+                    repeat 
+                        task.wait(autoReelDelay) 
+                        ReplicatedStorage.events.reelfinished:FireServer(100, false) 
+                    until GUI == nil
+                end 
+            end)
+        else
+            if autoreelandshakeConnection then
+                autoreelandshakeConnection:Disconnect()
+            end
+        end
+    end,
+})
+ 
+MainTab:AddSlider({
+    Name = "Auto Reel Cooldown",
+    Min = 0,
+    Max = 10,
+    Increment = 0.1,
+    Default = 1,
+    Callback = function(Value)
+        autoReelDelay = Value
+    end,
+})
+ 
+-- Auto Shake
+MainTab:AddToggle({
+    Name = "Auto Shake",
+    Default = false,
+    Callback = function(Value)
+        autoShake = Value
+        if autoShake then
+            autoreelandshakeConnection = PlayerGUI.ChildAdded:Connect(function(GUI)
+                if GUI:IsA("ScreenGui") and GUI.Name == "shakeui" then
+                    if GUI:FindFirstChild("safezone") ~= nil then
+                        GUI.safezone.ChildAdded:Connect(function(child)
+                            if child:IsA("ImageButton") and child.Name == "button" then
+                                task.wait(autoShakeDelay)
+                                if child.Visible == true then
+                                    if autoShakeMethod == "ClickEvent" then
+                                        local pos = child.AbsolutePosition
+                                        local size = child.AbsoluteSize
+                                        VirtualInputManager:SendMouseButtonEvent(pos.X + size.X / 2, pos.Y + size.Y / 2, 0, true, LocalPlayer, 0)
+                                        VirtualInputManager:SendMouseButtonEvent(pos.X + size.X / 2, pos.Y + size.Y / 2, 0, false, LocalPlayer, 0)
+                                    elseif autoShakeMethod == "KeyCodeEvent" then
+                                        GuiService.Changed:Connect(function(property)
+                                            GuiService.SelectedObject = child
+                                            if property == "SelectedObject" then
+                                                if GuiService.SelectedObject == child then
+                                                    VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.Return, false, game)
+                                                    VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.Return, false, game)
+                                                end
+                                            end
+                                        end)
+                                        GuiService.SelectedObject = child
+                                    end
+                                end
+                            end
+                        end)
+                    end
+                end
+            end)
+        else
+            if autoreelandshakeConnection then
+                autoreelandshakeConnection:Disconnect()
+            end
+        end
+    end,
+})
+ 
+MainTab:AddDropdown({
+    Name = "Auto Shake Mode",
+    Options = {"ClickEvent", "KeyCodeEvent"},
+    Callback = function(Selected)
+        autoShakeMethod = Selected
+    end,
+})
+ 
+MainTab:AddSlider({
+    Name = "Auto Shake Cooldown",
+    Min = 0,
+    Max = 10,
+    Increment = 0.1,
+    Default = 1,
+    Callback = function(Value)
+        autoShakeDelay = Value
+    end,
+})
