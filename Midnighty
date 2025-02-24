@@ -5,6 +5,9 @@ local player = game:GetService("Players").LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
 local UIS = game:GetService("UserInputService")
 local replicatedStorage = game:GetService("ReplicatedStorage")
+local Services = {
+    VirtualInputManager = game:GetService("VirtualInputManager")
+}
 
 -- Variables
 local autoReelEnabled = false
@@ -116,6 +119,35 @@ castDistance.Font = Enum.Font.SourceSans
 castDistance.BorderSizePixel = 0
 castDistance.Parent = mainFrame
 
+-- Functions module to interact with game elements
+local Functions = {
+    ReturnShake = function()
+        -- Find the shake button in the player's GUI
+        for _, gui in pairs(player:FindFirstChild("PlayerGui"):GetChildren()) do
+            for _, frame in pairs(gui:GetDescendants()) do
+                if frame:IsA("GuiObject") and
+                   (frame.Name:lower():find("shake") or 
+                    (frame:IsA("TextButton") and frame.Text:lower():find("shake"))) then
+                    return frame
+                end
+            end
+        end
+        
+        -- If no dedicated shake button found, try to find any fishing UI
+        for _, gui in pairs(player:FindFirstChild("PlayerGui"):GetChildren()) do
+            if gui.Name:lower():find("fish") then
+                for _, frame in pairs(gui:GetDescendants()) do
+                    if frame:IsA("TextButton") or frame:IsA("ImageButton") then
+                        return frame
+                    end
+                end
+            end
+        end
+        
+        return nil
+    end
+}
+
 -- Function to get current fishing rod
 local function getCurrentRod()
     local character = player.Character or player.CharacterAdded:Wait()
@@ -176,10 +208,20 @@ local function performShake()
         return
     end
     
-    -- Try different shake event names that might exist
+    -- Try to use VirtualInputManager to click the shake button
+    local shakeButton = Functions.ReturnShake()
+    if shakeButton then
+        local pos = shakeButton.AbsolutePosition
+        local size = shakeButton.AbsoluteSize
+        Services.VirtualInputManager:SendMouseButtonEvent(pos.X + size.X / 2, pos.Y + size.Y / 2, 0, true, player, 0)
+        Services.VirtualInputManager:SendMouseButtonEvent(pos.X + size.X / 2, pos.Y + size.Y / 2, 0, false, player, 0)
+        return
+    end
+    
+    -- Fallback to traditional methods if button not found
     local shakeEvent = rod.events:FindFirstChild("shake") or 
-                       rod.events:FindFirstChild("shaker") or
-                       replicatedStorage.events:FindFirstChild("rodshake")
+                      rod.events:FindFirstChild("shaker") or
+                      replicatedStorage.events:FindFirstChild("rodshake")
     
     if shakeEvent then
         shakeEvent:FireServer()
