@@ -1,52 +1,290 @@
--- Fishing Script with GUI
--- Compatible with any fishing rod
+local FischAPI = {}
 
-local player = game:GetService("Players").LocalPlayer
-local character = player.Character or player.CharacterAdded:Wait()
-local UIS = game:GetService("UserInputService")
-local replicatedStorage = game:GetService("ReplicatedStorage")
-local Services = {
-    VirtualInputManager = game:GetService("VirtualInputManager")
-}
 local VIM = game:GetService("VirtualInputManager")
 
--- Variables
-local autoReelEnabled = false
-local autoShakeEnabled = false
-local autoCastEnabled = false
-local rodCastDistance = 29 -- Default cast distance
-local guiVisible = true
-local noButtonMove = false -- Added for the new auto shake functionality
-local CalibrationData = {
-    FishingRod = "Fishing Rod" -- Default name, will be updated dynamically
-}
+local VI = {}
 
--- Options for the additional functionality
 local Options = {
-    FloatOnWater = false,
     AutoShake = false,
-    AutoMinigameBlatant = false
+    AutoMinigame = false, --Later version
+    AutoMinigameBlatant = false,
+    AutoCast = false,
+    PerfectCast = false, --Later version
+    WebhookURL = "",
+    WebhookNotifications = false,
+    FloatOnWater = false,
+    Lock = false,
+    MegaladonHunting = false,
 }
 
--- FischAPI Implementation
-local FischAPI = {}
+local Internal = {
+    AutoMinigameDownPerUp = 2,
+    AutoMinigameDownPerUpInternal = 2,
+    Timer = 301,
+    FloatPart = nil,
+    LockedPosition = nil,
+    MegaladonPosition = nil,
+    Megaladon = false,
+    MegHuntPlat = nil,
+    MegHuntPos = nil
+}
+
+local Utils = {}
+
+local UI = {}
+
+local CalibrationData = {}
+
+local FischUser = {}
+
+local NEVERLOSE = loadstring(game:HttpGet("https://raw.githubusercontent.com/IayZBoy/TrollScripts/main/randomuilib.lua"))()
+
+local Notification = NEVERLOSE.Notification();
+
+NEVERLOSE:Theme("dark")
+
+--UI
+
+for Setting, Value in pairs(Options) do
+    if Value == false then
+        UI[Setting] = function(Val)
+            Options[Setting] = Val
+        end
+    end
+end
+
+function UI.Initialize()
+    --UI
+
+    local Windows = NEVERLOSE:AddWindow("Fichy47","Fichy47 - Fisch - V0.0.3 - discord.gg/fichy47")
+
+    local FishingTab = Windows:AddTab("Fishing", "earth")
+
+    local Interactions = Windows:AddTab("Interactions", "list")
+
+    local AreaTeleportsTab = Windows:AddTab("Area Teleports", "earth")
+
+    local MegaladonHunting = Windows:AddTab("Megaladon Hunting", "earth")
+
+    local WebhookTab = Windows:AddTab("Webhook", "list")
+
+    local MechanicsSection = FishingTab:AddSection("Mechanics", "left")
+
+    local Convenience = FishingTab:AddSection("Convenience", "left")
+
+    local CreditsSection = FishingTab:AddSection("Credits", "right")
+
+    local Teleports = AreaTeleportsTab:AddSection("Teleports", "left")
+
+    local Actions = Interactions:AddSection("Actions", "left")
+
+    local WebhookSection = WebhookTab:AddSection("Webhook", "left")
+
+    Actions:AddButton("Sell All",  FischUser.Sell)
+
+    Convenience:AddToggle("Float On Water", false, UI.FloatOnWater)
+
+    Convenience:AddLabel("Turn ON to walk around and choose spot.")
+    
+    Convenience:AddLabel("Turn OFF to choose your position.")
+
+    Convenience:AddToggle("Lock Position", false, function(v) 
+        Internal.LockedPosition = game.Players.LocalPlayer.Character.HumanoidRootPart.Position
+        UI.Lock(v) 
+    end)
+
+    MechanicsSection:AddToggle("Auto Shake", false, UI.AutoShake)
+
+    MechanicsSection:AddToggle("Auto Reel (Blatant)", false, UI.AutoMinigameBlatant)
+
+    MechanicsSection:AddToggle("Auto Cast", false, UI.AutoCast)
+
+    WebhookSection:AddTextBox(
+        "Webhook URL", 
+        "", 
+        function(text)
+            Options.WebhookURL = text
+            Notification:Notify("info", "Set Webhook Successfully", "Set webhook to "..text, 5)
+        end
+    )
+
+    WebhookSection:AddToggle(
+        "Send Webhook Notifications",
+        false,
+        UI.WebhookNotifications
+    )
+
+    for Place, Position in pairs(CalibrationData.Positions) do
+        Teleports:AddButton(
+            "Teleport to "..Place,
+            function()
+                game.Players.LocalPlayer.Character.HumanoidRootPart.Position = Position
+            end
+        )
+    end
+
+    local MegHunt = MegaladonHunting:AddSection("Hunting", "left")
+
+    local HuntOrNo = MegHunt:AddToggle("Hunt Megaladon", false, UI.MegaladonHunting)
+
+    MegHunt:AddLabel("If a Megaladon is spotted within the server,")
+    MegHunt:AddLabel("it will override all options and")
+    MegHunt:AddLabel("hunt for it.")
+    MegHunt:AddLabel("It will go back to normal once you or someone else")
+    MegHunt:AddLabel("has caught it.")
+
+    Actions:AddButton("Open/Close Boat UI", function() 
+        FischUser.OpenBoatUI()
+    end)
+
+    CreditsSection:AddLabel("Fichy47 Script by dynamicarrays")
+    CreditsSection:AddButton(
+        "Discord",
+        function()
+            setclipboard("discord.gg/fichy47")
+        end
+    )
+
+    local AbundanceZoneSection = FishingTab:AddSection("Abundances", "right")
+    
+    local Ab = {}
+
+    local Ab2 = {}
+
+    local Choice = nil
+
+    local LabeledChance = nil
+
+    local AbundanceChoice = AbundanceZoneSection:AddDropdown("Abundances", Ab, "Loading", function(D)
+        LabeledChance:Text("Chance: "..tostring(Ab2[D].Chance).."%")
+        Choice = Ab2[D]
+    end)
+
+    LabeledChance = AbundanceZoneSection:AddLabel("Chance: 0%")
+
+    local GotoAbundance = AbundanceZoneSection:AddButton("Go to Abundance", function() 
+        game.Players.LocalPlayer.Character.HumanoidRootPart.Position = Vector3.new(Choice.Position.X, 137.77, Choice.Position.Z)
+    end)
+
+    local FishRadarPlaces = {}
+
+    local I = 0
+
+    while I < 100 do
+        I = I + 1
+        FishingTab:AddSection("Scrolling Space", "right")
+    end
+
+    while task.wait(5) do
+        local Places = FischAPI.GetAllAbundanceZones()
+        Ab2 = Places
+        Ab = {}
+        local FoundMeg = false
+        for Fish, Info in pairs(Ab2) do
+            if string.match(Fish, "Megalodon") then
+                Internal.Megaladon = true
+                FoundMeg = true
+                Internal.MegaladonPosition = Info.Position
+            end
+            table.insert(Ab, Fish)
+        end
+        if FoundMeg == false then
+            Internal.Megaladon = false
+            Internal.MegaladonPosition = nil
+            pcall(function()  
+                Internal.MegHuntPlat:Destroy()
+            end)
+        end
+        AbundanceChoice:Refresh(Ab)
+    end
+end
+
+--Utils
+
+function Utils.Overlap(gui1, gui2)
+    local gui1_topLeft = gui1.AbsolutePosition
+    local gui1_bottomRight = gui1_topLeft + gui1.AbsoluteSize
+
+    local gui2_topLeft = gui2.AbsolutePosition
+    local gui2_bottomRight = gui2_topLeft + gui2.AbsoluteSize
+    
+    return ((gui1_topLeft.x < gui2_bottomRight.x and gui1_bottomRight.x > gui2_topLeft.x) and (gui1_topLeft.y < gui2_bottomRight.y and gui1_bottomRight.y > gui2_topLeft.y))
+end
+
+function Utils.SendWebhookData(Link, Text)
+    local DataForm = Text
+    local maxLength = 1950
+    local chunks = {}
+    local HttpService = game:GetService("HttpService")
+
+    while #DataForm > 0 do
+        local chunk = DataForm:sub(1, maxLength)
+        if #DataForm > maxLength then
+            local lastNewline = chunk:match(".*\n()")
+            if lastNewline then
+                chunk = DataForm:sub(1, lastNewline - 1)
+            end
+        end
+        table.insert(chunks, chunk)
+        DataForm = DataForm:sub(#chunk + 1)
+    end
+
+    for i, chunk in chunks do
+        local data = {
+            content = chunk
+        }
+        
+        request({
+            Url = Link,
+            Method = "POST",
+            Headers = {
+                ["Content-Type"] = "application/json"
+            },
+            Body = HttpService:JSONEncode(data)
+        })
+    end
+end
+
+--VI
+
+VI.State = false
+
+function VI.ClickUI(ui)
+    local x = ui.AbsolutePosition.X + (ui.AbsoluteSize.X / 2)
+    local y = ui.AbsolutePosition.Y + (ui.AbsoluteSize.Y / 2)
+    VIM:SendMouseButtonEvent(x, y, 0, true, game, 0)
+    task.wait(0.05)
+    VIM:SendMouseButtonEvent(x, y, 0, false, game, 0)
+end
+
+function VI.Down(ui)
+    VI.State = true
+    local x = ui.AbsolutePosition.X + (ui.AbsoluteSize.X / 2)
+    local y = ui.AbsolutePosition.Y + (ui.AbsoluteSize.Y / 2)
+    VIM:SendMouseButtonEvent(x, y, 0, true, game, 0)
+end
+
+function VI.Up(ui)
+    VI.State = false
+    local x = ui.AbsolutePosition.X + (ui.AbsoluteSize.X / 2)
+    local y = ui.AbsolutePosition.Y + (ui.AbsoluteSize.Y / 2)
+    VIM:SendMouseButtonEvent(x, y, 0, false, game, 0)
+end
+
+--API
 
 function FischAPI.TapShake()
     local ShakeGUI = game:GetService("Players").LocalPlayer.PlayerGui:FindFirstChild("shakeui")
-    if ShakeGUI and ShakeGUI:FindFirstChild("safezone") and ShakeGUI.safezone:FindFirstChild("button") then
-        local Target = ShakeGUI.safezone.button
-        local GuiService = game:GetService("GuiService")
-    
-        GuiService.SelectedObject = Target
-    
-        VIM:SendKeyEvent(true, Enum.KeyCode.Return, false, nil)
-    
-        task.wait(0.005)
-    
-        VIM:SendKeyEvent(false, Enum.KeyCode.Return, false, nil)
-        return true
-    end
-    return false
+    local Target = ShakeGUI.safezone.button
+    local GuiService = game:GetService("GuiService")
+
+    GuiService.SelectedObject = Target
+
+    VIM:SendKeyEvent(true, Enum.KeyCode.Return, false, nil)
+
+    task.wait(0.005)
+
+    VIM:SendKeyEvent(false, Enum.KeyCode.Return, false, nil)
 end
 
 function FischAPI.InstantReel()
@@ -54,53 +292,126 @@ function FischAPI.InstantReel()
 end
 
 function FischAPI.Cast()
-    local rod = getCurrentRod()
-    if rod then
-        CalibrationData.FishingRod = rod.Name
-        rod.events.cast:FireServer(rodCastDistance, 1)
-        return true
-    end
-    return false
+    game.Players.LocalPlayer.Character[CalibrationData.FishingRod].events.cast:FireServer(100,1)
 end
 
--- FischUser Implementation (Added from the new code)
-local FischUser = {}
+function FischAPI.GetAllAbundanceZones()
+    local Abundances = {}
+    for i, Zone in pairs(game:GetService("Workspace").zones.fishing:GetChildren()) do
+        local Info = {}
+        if Zone:FindFirstChild("Abundance") then
+            if Zone:FindFirstChild("Abundance"):FindFirstChild("Chance") then
+                Info.Chance = Zone.Abundance.Chance.Value
+            else
+                Info.Chance = 1
+            end
+            Info.Position = Zone.Position
+            if Abundances[Zone.Abundance.Value] == nil then
+                Abundances[Zone.Abundance.Value] = Info
+            elseif Abundances[Zone.Abundance.Value].Chance < Info.Chance then
+                Abundances[Zone.Abundance.Value] = Info
+            end
+        end
+    end
+    return Abundances
+end
+
+function FischAPI.SellAll()
+    workspace.world.npcs["Marc Merchant"].merchant.sellall:InvokeServer()
+end
+
+function FischAPI.InitializePossibleDetections(Power)
+    --This is just for guidement, don't use this function lol
+    game:GetService("ReplicatedStorage").modules.fishing.rodresources.events.cast:FireServer(Power,1)
+end
+
+function FischAPI.DetermineClickActionMinigame()
+
+end
+
+function FischAPI.GetFish()
+    local Text = "Items/Fish:\n"
+    for i, v in pairs(game.Players.LocalPlayer.Backpack:GetChildren()) do
+        Text=Text..v.Name.."\n"
+    end
+    return Text
+end
+
+--User
+
+function FischUser.Sell()
+    FischAPI.SellAll()
+end
+
+function FischUser.AutoShake()
+    FischAPI.TapShake()
+end
+
+function FischUser.OpenBoatUI()
+    game:GetService("Players").LocalPlayer.PlayerGui.hud.safezone.shipwright.Visible = not game:GetService("Players").LocalPlayer.PlayerGui.hud.safezone.shipwright.Visible
+end
+
+function FischUser.LockPosition()
+    if Internal.Megaladon == true then
+        if Options.MegaladonHunting == true then
+            game.Players.LocalPlayer.Character.HumanoidRootPart.Position = Internal.MegHuntPos
+            return
+        end
+    end
+    game.Players.LocalPlayer.Character.HumanoidRootPart.Position = Internal.LockedPosition
+end
+
+function FischUser.FloatOnWater()
+    pcall(function()
+        Internal.FloatPart:Destroy()
+    end)
+    Internal.FloatPart = Instance.new("Part", workspace)
+    Internal.FloatPart.Anchored = true
+    Internal.FloatPart.Size = Vector3.new(10,1,10)
+    Internal.FloatPart.Position = Vector3.new(game.Players.LocalPlayer.Character.HumanoidRootPart.Position.X, 133.77, game.Players.LocalPlayer.Character.HumanoidRootPart.Position.Z)
+    game.Players.LocalPlayer.Character.HumanoidRootPart.Position = Vector3.new(game.Players.LocalPlayer.Character.HumanoidRootPart.Position.X, 150, game.Players.LocalPlayer.Character.HumanoidRootPart.Position.Z)
+end
+
+function FischUser.AutoMinigame()
+    local action = FischAPI.DetermineClickActionMinigame()
+    local PlayerBar = game:GetService("Players").LocalPlayer.PlayerGui.reel.bar.playerbar
+    if action == true then
+        if VI.State == false then
+            VI.Down(PlayerBar)
+        end
+    else
+        if VI.State == true then
+            VI.Up(PlayerBar)
+        end
+    end
+end
+
+function FischUser.SecondUpdateWebhook()
+    local a, b = pcall(function()
+        Internal.Timer = Internal.Timer + 1
+        if Internal.Timer >= 300 then
+            Internal.Timer = 0
+            local Data = FischAPI.GetFish()
+            Utils.SendWebhookData(Options.WebhookURL, Data)
+            Notification.new({
+                Title = "Webhook Notification Sent",
+                Description = "The next webhook notification is in 5 minutes.",
+                Duration = 5,
+                Icon = "rbxassetid://8997385628"
+            })
+        end
+    end)
+    print(a, b)
+end
 
 function FischUser.AutoCast()
     FischAPI.Cast()
 end
- 
+
 function FischUser.AutoReel()
     FischAPI.InstantReel()
 end
 
-function FischUser.AutoShake()
-    -- Using the existing performShake function logic
-    performShake()
-end
-
-function FischUser.FloatOnWater()
-    -- Implementation for floating on water
-    local humanoid = character:FindFirstChildOfClass("Humanoid")
-    if humanoid then
-        local rootPart = character:FindFirstChild("HumanoidRootPart")
-        if rootPart then
-            -- Check if player is over water (simplified implementation)
-            local rayParams = RaycastParams.new()
-            rayParams.FilterType = Enum.RaycastFilterType.Exclude
-            rayParams.FilterDescendantsInstances = {character}
-            
-            local rayResult = workspace:Raycast(rootPart.Position, Vector3.new(0, -10, 0), rayParams)
-            if not rayResult or rayResult.Instance.Name:lower():find("water") then
-                -- Player is over water, make them float
-                humanoid:ChangeState(Enum.HumanoidStateType.Physics)
-                rootPart.Velocity = Vector3.new(rootPart.Velocity.X, 0, rootPart.Velocity.Z)
-                rootPart.AssemblyLinearVelocity = Vector3.new(rootPart.AssemblyLinearVelocity.X, 0, rootPart.AssemblyLinearVelocity.Z)
-            end
-        end
-    end
-end
- 
 function FischUser.StepLoop()
     if Options.FloatOnWater == true then
         pcall(function()
@@ -119,412 +430,124 @@ function FischUser.StepLoop()
     end
 end
 
--- GUI Setup
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "FishingHelper"
-ScreenGui.ResetOnSpawn = false
-ScreenGui.Parent = player.PlayerGui
-
--- Main Frame
-local mainFrame = Instance.new("Frame")
-mainFrame.Name = "MainFrame"
-mainFrame.Size = UDim2.new(0, 200, 0, 250) -- Increased height for the additional buttons
-mainFrame.Position = UDim2.new(0.8, 0, 0.5, 0)
-mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-mainFrame.BorderSizePixel = 0
-mainFrame.Active = true
-mainFrame.Draggable = true
-mainFrame.Parent = ScreenGui
-
--- Title Bar
-local titleBar = Instance.new("Frame")
-titleBar.Name = "TitleBar"
-titleBar.Size = UDim2.new(1, 0, 0, 30)
-titleBar.BackgroundColor3 = Color3.fromRGB(40, 100, 160)
-titleBar.BorderSizePixel = 0
-titleBar.Parent = mainFrame
-
-local titleText = Instance.new("TextLabel")
-titleText.Name = "Title"
-titleText.Size = UDim2.new(0.7, 0, 1, 0)
-titleText.Position = UDim2.new(0, 10, 0, 0)
-titleText.Text = "Fishing Helper"
-titleText.TextColor3 = Color3.fromRGB(255, 255, 255)
-titleText.TextSize = 16
-titleText.Font = Enum.Font.SourceSansBold
-titleText.BackgroundTransparency = 1
-titleText.TextXAlignment = Enum.TextXAlignment.Left
-titleText.Parent = titleBar
-
--- Toggle Visibility Button
-local toggleButton = Instance.new("TextButton")
-toggleButton.Name = "ToggleButton"
-toggleButton.Size = UDim2.new(0.2, 0, 1, 0)
-toggleButton.Position = UDim2.new(0.8, 0, 0, 0)
-toggleButton.BackgroundColor3 = Color3.fromRGB(200, 60, 60)
-toggleButton.Text = "X"
-toggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-toggleButton.TextSize = 16
-toggleButton.Font = Enum.Font.SourceSansBold
-toggleButton.BorderSizePixel = 0
-toggleButton.Parent = titleBar
-
--- Auto Reel Button
-local autoReelButton = Instance.new("TextButton")
-autoReelButton.Name = "AutoReelButton"
-autoReelButton.Size = UDim2.new(0.9, 0, 0, 25)
-autoReelButton.Position = UDim2.new(0.05, 0, 0.2, 0)
-autoReelButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-autoReelButton.Text = "Auto Reel: OFF"
-autoReelButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-autoReelButton.TextSize = 14
-autoReelButton.Font = Enum.Font.SourceSans
-autoReelButton.BorderSizePixel = 0
-autoReelButton.Parent = mainFrame
-
--- Auto Shake Button
-local autoShakeButton = Instance.new("TextButton")
-autoShakeButton.Name = "AutoShakeButton"
-autoShakeButton.Size = UDim2.new(0.9, 0, 0, 25)
-autoShakeButton.Position = UDim2.new(0.05, 0, 0.35, 0)
-autoShakeButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-autoShakeButton.Text = "Auto Shake: OFF"
-autoShakeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-autoShakeButton.TextSize = 14
-autoShakeButton.Font = Enum.Font.SourceSans
-autoShakeButton.BorderSizePixel = 0
-autoShakeButton.Parent = mainFrame
-
--- Auto Cast Button
-local autoCastButton = Instance.new("TextButton")
-autoCastButton.Name = "AutoCastButton"
-autoCastButton.Size = UDim2.new(0.9, 0, 0, 25)
-autoCastButton.Position = UDim2.new(0.05, 0, 0.5, 0)
-autoCastButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-autoCastButton.Text = "Auto Cast: OFF"
-autoCastButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-autoCastButton.TextSize = 14
-autoCastButton.Font = Enum.Font.SourceSans
-autoCastButton.BorderSizePixel = 0
-autoCastButton.Parent = mainFrame
-
--- No Button Move Toggle (Added for new auto shake functionality)
-local noButtonMoveButton = Instance.new("TextButton")
-noButtonMoveButton.Name = "NoButtonMoveButton"
-noButtonMoveButton.Size = UDim2.new(0.9, 0, 0, 25)
-noButtonMoveButton.Position = UDim2.new(0.05, 0, 0.65, 0)
-noButtonMoveButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-noButtonMoveButton.Text = "No Button Move: OFF"
-noButtonMoveButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-noButtonMoveButton.TextSize = 14
-noButtonMoveButton.Font = Enum.Font.SourceSans
-noButtonMoveButton.BorderSizePixel = 0
-noButtonMoveButton.Parent = mainFrame
-
--- Float On Water Button (Added from new functionality)
-local floatOnWaterButton = Instance.new("TextButton")
-floatOnWaterButton.Name = "FloatOnWaterButton"
-floatOnWaterButton.Size = UDim2.new(0.9, 0, 0, 25)
-floatOnWaterButton.Position = UDim2.new(0.05, 0, 0.8, 0)
-floatOnWaterButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-floatOnWaterButton.Text = "Float On Water: OFF"
-floatOnWaterButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-floatOnWaterButton.TextSize = 14
-floatOnWaterButton.Font = Enum.Font.SourceSans
-floatOnWaterButton.BorderSizePixel = 0
-floatOnWaterButton.Parent = mainFrame
-
--- Cast Distance Adjuster
-local castDistance = Instance.new("TextBox")
-castDistance.Name = "CastDistance"
-castDistance.Size = UDim2.new(0.9, 0, 0, 25)
-castDistance.Position = UDim2.new(0.05, 0, 0.95, 0)
-castDistance.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-castDistance.Text = tostring(rodCastDistance)
-castDistance.PlaceholderText = "Cast Distance"
-castDistance.TextColor3 = Color3.fromRGB(255, 255, 255)
-castDistance.TextSize = 14
-castDistance.Font = Enum.Font.SourceSans
-castDistance.BorderSizePixel = 0
-castDistance.Parent = mainFrame
-
--- Functions module to interact with game elements
-local Functions = {
-    ReturnShake = function()
-        -- Find the shake button in the player's GUI
-        for _, gui in pairs(player:FindFirstChild("PlayerGui"):GetChildren()) do
-            for _, frame in pairs(gui:GetDescendants()) do
-                if frame:IsA("GuiObject") and
-                   (frame.Name:lower():find("shake") or 
-                    (frame:IsA("TextButton") and frame.Text:lower():find("shake"))) then
-                    return frame
-                end
-            end
+function FischUser.MegaladonHuntInstant()
+    if Internal.Megaladon == true then
+        if Internal.MegHuntPlat then
+            return
         end
-        
-        -- If no dedicated shake button found, try to find any fishing UI
-        for _, gui in pairs(player:FindFirstChild("PlayerGui"):GetChildren()) do
-            if gui.Name:lower():find("fish") then
-                for _, frame in pairs(gui:GetDescendants()) do
-                    if frame:IsA("TextButton") or frame:IsA("ImageButton") then
-                        return frame
-                    end
-                end
-            end
-        end
-        
-        return nil
-    end
-}
-
--- Function to get current fishing rod
-function getCurrentRod()
-    local character = player.Character or player.CharacterAdded:Wait()
-    
-    -- Search through all character items for a rod
-    for _, tool in pairs(character:GetChildren()) do
-        if tool:IsA("Tool") and tool:FindFirstChild("events") and tool.events:FindFirstChild("cast") then
-            return tool
-        end
-    end
-    
-    return nil
-end
-
--- Function to perform a reel
-function performReel()
-    -- Try FischAPI method first
-    FischAPI.InstantReel()
-    
-    -- Fallback method
-    local args = {
-        [1] = 100,  -- Success rate (100 is perfect)
-        [2] = true  -- Success boolean
-    }
-    
-    -- Find the correct remote event
-    local reelEvent = replicatedStorage.events:FindFirstChild("reelfinished") or 
-                      replicatedStorage.events:FindFirstChild("reelfinished ") -- Note the space
-    
-    if reelEvent then
-        reelEvent:FireServer(unpack(args))
-    else
-        print("Reel event not found!")
+        game.Players.LocalPlayer.Character.HumanoidRootPart.Position = Vector3.new(Internal.MegaladonPosition.X, 150.77, Internal.MegaladonPosition.Z)
+        Internal.MegHuntPlat = Instance.new("Part", workspace)
+        Internal.MegHuntPlat.Anchored = true
+        Internal.MegHuntPlat.Size = Vector3.new(10,1,10)
+        Internal.MegHuntPlat.Position = Vector3.new(game.Players.LocalPlayer.Character.HumanoidRootPart.Position.X, 133.77, game.Players.LocalPlayer.Character.HumanoidRootPart.Position.Z)
+        game.Players.LocalPlayer.Character.HumanoidRootPart.Position = Vector3.new(game.Players.LocalPlayer.Character.HumanoidRootPart.Position.X, 150, game.Players.LocalPlayer.Character.HumanoidRootPart.Position.Z)
+        task.wait(5)
+        Internal.MegHuntPos = game.Players.LocalPlayer.Character.HumanoidRootPart.Position
     end
 end
 
--- Function to perform a cast
-function performCast()
-    -- Try FischAPI method first
-    if FischAPI.Cast() then
-        return
-    end
-    
-    -- Fallback method
-    local rod = getCurrentRod()
-    if not rod then
-        print("No fishing rod equipped!")
-        return
-    end
-    
-    local castEvent = rod.events.cast
-    if castEvent then
-        local args = {
-            [1] = rodCastDistance,
-            [2] = 1  -- Power multiplier
-        }
-        castEvent:FireServer(unpack(args))
-    else
-        print("Cast event not found!")
+function FischUser.Heartbeat()
+    if Options.MegaladonHunting == true then
+        FischUser.MegaladonHuntInstant()
     end
 end
 
--- Updated function to perform a shake using the new method
-function performShake()
-    -- Try FischAPI method first
-    if FischAPI.TapShake() then
-        return
-    end
-    
-    -- Fallback method 1: Find and click shake button
-    local shakeButton = Functions.ReturnShake()
-    if shakeButton then
-        -- If NoButtonMove is enabled, move the button to a consistent position
-        if noButtonMove then
-            shakeButton.Position = UDim2.new(0.5, 0, 1, 0)
-        end
-        
-        -- Use VirtualInputManager to click the shake button (improved method)
-        local pos = shakeButton.AbsolutePosition
-        local size = shakeButton.AbsoluteSize
-        Services.VirtualInputManager:SendMouseButtonEvent(pos.X + size.X / 2, pos.Y + size.Y / 2, 0, true, player, 0)
-        Services.VirtualInputManager:SendMouseButtonEvent(pos.X + size.X / 2, pos.Y + size.Y / 2, 0, false, player, 0)
-        return
-    end
-    
-    -- Fallback method 2: Try to find and fire shake event
-    local rod = getCurrentRod()
-    if not rod then
-        print("No fishing rod equipped!")
-        return
-    end
-    
-    local shakeEvent = rod.events:FindFirstChild("shake") or 
-                      rod.events:FindFirstChild("shaker") or
-                      replicatedStorage.events:FindFirstChild("rodshake")
-    
-    if shakeEvent then
-        shakeEvent:FireServer()
-    else
-        -- Fallback method 3: Try to directly modify rod properties if event doesn't exist
-        if rod:FindFirstChild("Handle") then
-            local originalCFrame = rod.Handle.CFrame
-            for i = 1, 5 do
-                rod.Handle.CFrame = originalCFrame * CFrame.new(math.random(-1, 1)/10, math.random(-1, 1)/10, math.random(-1, 1)/10)
-                task.wait(0.05)
-            end
-            rod.Handle.CFrame = originalCFrame
-        end
-    end
+function FischUser.OneStep()
+
 end
 
--- Button Functions
-toggleButton.MouseButton1Click:Connect(function()
-    if guiVisible then
-        autoReelButton.Visible = false
-        autoShakeButton.Visible = false
-        autoCastButton.Visible = false
-        noButtonMoveButton.Visible = false
-        floatOnWaterButton.Visible = false -- Hide the new float button
-        castDistance.Visible = false
-        mainFrame.Size = UDim2.new(0, 200, 0, 30)
-        toggleButton.Text = "O"
-        toggleButton.BackgroundColor3 = Color3.fromRGB(60, 200, 60)
-    else
-        autoReelButton.Visible = true
-        autoShakeButton.Visible = true
-        autoCastButton.Visible = true
-        noButtonMoveButton.Visible = true
-        floatOnWaterButton.Visible = true -- Show the new float button
-        castDistance.Visible = true
-        mainFrame.Size = UDim2.new(0, 200, 0, 250) -- Adjusted size for all buttons
-        toggleButton.Text = "X"
-        toggleButton.BackgroundColor3 = Color3.fromRGB(200, 60, 60)
-    end
-    guiVisible = not guiVisible
-end)
-
-autoReelButton.MouseButton1Click:Connect(function()
-    autoReelEnabled = not autoReelEnabled
-    Options.AutoMinigameBlatant = autoReelEnabled -- Sync with Options
-    autoReelButton.Text = "Auto Reel: " .. (autoReelEnabled and "ON" or "OFF")
-    autoReelButton.BackgroundColor3 = autoReelEnabled and Color3.fromRGB(60, 180, 60) or Color3.fromRGB(60, 60, 60)
-    
-    -- Start the auto reel loop if enabled
-    if autoReelEnabled then
-        spawn(function()
-            while autoReelEnabled do
-                performReel()
-                task.wait(1) -- Using task.wait instead of wait
-            end
-        end)
-    end
-end)
-
-autoShakeButton.MouseButton1Click:Connect(function()
-    autoShakeEnabled = not autoShakeEnabled
-    Options.AutoShake = autoShakeEnabled -- Sync with Options
-    autoShakeButton.Text = "Auto Shake: " .. (autoShakeEnabled and "ON" or "OFF")
-    autoShakeButton.BackgroundColor3 = autoShakeEnabled and Color3.fromRGB(60, 180, 60) or Color3.fromRGB(60, 60, 60)
-    
-    -- Start the auto shake loop if enabled
-    if autoShakeEnabled then
-        spawn(function()
-            while autoShakeEnabled do
-                performShake()
-                task.wait(0.5) -- Using task.wait instead of wait
-            end
-        end)
-    end
-end)
-
--- New button function for NoButtonMove toggle
-noButtonMoveButton.MouseButton1Click:Connect(function()
-    noButtonMove = not noButtonMove
-    noButtonMoveButton.Text = "No Button Move: " .. (noButtonMove and "ON" or "OFF")
-    noButtonMoveButton.BackgroundColor3 = noButtonMove and Color3.fromRGB(60, 180, 60) or Color3.fromRGB(60, 60, 60)
-end)
-
--- New button for Float On Water
-floatOnWaterButton.MouseButton1Click:Connect(function()
-    Options.FloatOnWater = not Options.FloatOnWater
-    floatOnWaterButton.Text = "Float On Water: " .. (Options.FloatOnWater and "ON" or "OFF")
-    floatOnWaterButton.BackgroundColor3 = Options.FloatOnWater and Color3.fromRGB(60, 180, 60) or Color3.fromRGB(60, 60, 60)
-end)
-
-autoCastButton.MouseButton1Click:Connect(function()
-    autoCastEnabled = not autoCastEnabled
-    autoCastButton.Text = "Auto Cast: " .. (autoCastEnabled and "ON" or "OFF")
-    autoCastButton.BackgroundColor3 = autoCastEnabled and Color3.fromRGB(60, 180, 60) or Color3.fromRGB(60, 60, 60)
-    
-    -- Start the auto cast loop if enabled
-    if autoCastEnabled then
-        spawn(function()
-            while autoCastEnabled do
-                performCast()
-                task.wait(5) -- Using task.wait instead of wait
-            end
-        end)
-    end
-end)
-
-castDistance.FocusLost:Connect(function(enterPressed)
-    if enterPressed then
-        local newDistance = tonumber(castDistance.Text)
-        if newDistance and newDistance > 0 then
-            rodCastDistance = newDistance
-            castDistance.Text = tostring(rodCastDistance)
-        else
-            castDistance.Text = tostring(rodCastDistance)
-        end
-    end
-end)
-
--- Update character reference when player respawns
-player.CharacterAdded:Connect(function(newCharacter)
-    character = newCharacter
-end)
-
--- Start the StepLoop for running the new functionality
-spawn(function()
-    while true do
+function FischUser.Relaxed1Sec()
+    if Options.WebhookNotifications == true then
         pcall(function()
-            FischUser.StepLoop()
+            FischUser.SecondUpdateWebhook()
         end)
-        task.wait(0.1)
     end
-end)
+    if Options.AutoCast == true then
+        pcall(function()
+            if Options.Lock == true then
+                FischUser.LockPosition()
+            end
+            FischUser.AutoCast()
+        end)
+    end
+end
 
--- Notification when script loads
-local notification = Instance.new("TextLabel")
-notification.Name = "Notification"
-notification.Size = UDim2.new(0, 200, 0, 30)
-notification.Position = UDim2.new(0.5, -100, 0.8, 0)
-notification.Text = "Enhanced Fishing Helper Loaded!"
-notification.TextColor3 = Color3.fromRGB(255, 255, 255)
-notification.TextSize = 16
-notification.Font = Enum.Font.SourceSansBold
-notification.BackgroundColor3 = Color3.fromRGB(40, 100, 160)
-notification.BackgroundTransparency = 0.3
-notification.BorderSizePixel = 0
-notification.Parent = ScreenGui
+function FischUser.Initialize()
+    spawn(function()
+        game:GetService("RunService").RenderStepped:Connect(function()
+            FischUser.Heartbeat()
+        end)
+    end)
+    spawn(function()
+        FischUser.OneStep()
+    end)
+    spawn(function()
+        while task.wait(0.005) do
+            pcall(function()
+                FischUser.StepLoop()
+            end)
+        end
+    end)
+    spawn(function()
+        while task.wait(1) do
+            FischUser.Relaxed1Sec()
+        end
+    end)
+end
 
-game:GetService("Debris"):AddItem(notification, 3)
-
-print("Enhanced fishing helper script loaded successfully!")
-
--- Return FischAPI and FischUser for external use
-return {
-    FischAPI = FischAPI,
-    FischUser = FischUser
-}
+Notification:Notify(
+    "info",
+    "Calibration",
+    "Please make sure to follow all the steps listed.",
+    5
+)
+Notification:Notify(
+    "info",
+    "Calibration",
+    "Ensure that you are in the spawn area before executing the script. Equip your fishing rod.",
+    5
+)
+task.wait(5)
+while true do
+    local a, b = pcall(function()
+        local CreateError = {}
+        for i, v in pairs(game.Players.LocalPlayer.Character:GetChildren()) do
+            if v:IsA("Tool") then
+                CalibrationData.FishingRod = v.Name
+            end
+        end
+        CalibrationData.Positions = {}
+        for i, v in pairs(game:GetService("Workspace").zones.player:GetChildren()) do
+            CalibrationData.Positions[v.Name] = v.Position
+        end
+        if CalibrationData.FishingRod == nil then
+            local E = CreateError[1]+1
+        end
+    end)
+    if a == false then
+        Notification:Notify(
+            "warning",
+            "Calibration Error",
+            "Something went wrong with your calibration. Make sure to complete all the tasks listed. Will attempt to recalibrate in 5 seconds...",
+            5
+        )
+        Notification:Notify(
+            "info",
+            "Calibration",
+            "Ensure that you are in the spawn area before executing the script. Equip your fishing rod.",
+            5
+        )
+        task.wait(5)
+    else
+        Notification:Notify(
+            "info",
+            "Calibration Successful",
+            "Now loading script...",
+            5
+        )
+        task.wait(5)
+        FischUser.Initialize()
+        UI.Initialize()
+        break
+    end
+end
