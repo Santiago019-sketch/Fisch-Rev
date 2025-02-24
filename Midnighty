@@ -1,193 +1,664 @@
--- Services
-local Players = game:GetService('Players')
-local StarterGui = game:GetService('StarterGui')
-local ReplicatedStorage = game:GetService('ReplicatedStorage')
-local ContextActionService = game:GetService('ContextActionService')
-local VirtualInputManager = game:GetService('VirtualInputManager')
-local TweenService = game:GetService("TweenService")
-local CoreGui = game:GetService("CoreGui")
+-- Initialize Variables
+local LocalPlayer = game.Players.LocalPlayer
+local AutoFish, AutoSell = false, false
+local waittime = 0.001
+local sellCooldown = 5
+local fishCount, startTime, lastSellTime = 0, os.time(), 0
+local Finished, Progress = false, false
 
--- Debug function
-local function debug(msg)
-    print("[MidnightHub Debug]: " .. msg)
+-- Initialize UI Library
+local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
+local SaveManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/SaveManager.lua"))()
+local InterfaceManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/InterfaceManager.lua"))()
+
+-- Create Window
+local Window = Fluent:CreateWindow({
+    Title = "Fishing Simulator GUI",
+    SubTitle = "by Gatra10_",
+    TabWidth = 160,
+    Size = UDim2.fromOffset(580, 460),
+    Acrylic = false, -- No blur to prevent detection
+    Theme = "Dark",
+    MinimizeKey = Enum.KeyCode.LeftControl
+})
+
+-- Create Tabs
+local Tabs = {
+    AutoFish = Window:AddTab({
+        Title = "Auto Fish",
+        Icon = "fish"
+    }),
+    Teleports = Window:AddTab({
+        Title = "Teleports",
+        Icon = "map-pin"
+    }),
+    Sells = Window:AddTab({
+        Title = "Sells",
+        Icon = "shopping-cart"
+    }),
+    Misc = Window:AddTab({
+        Title = "Misc",
+        Icon = "settings"
+    })
+}
+
+-- Notification Function
+function ShowNotification(title, content)
+    Fluent:Notify({
+        Title = title,
+        Content = content,
+        Duration = 3
+    })
 end
 
-debug("Script started")
+-- Teleports
+local SelectedIsland = "Moosewood"
+local IslandTPDropdownUI = Tabs.Teleports:AddDropdown("IslandTPDropdownUI", {
+    Title = "Select an Island",
+    Values = {"Moosewood", "Roslit Bay", "Terrapin", "Sunstone", "Statue of Sovereignty", "Mushgrove Swamp", "Snowcap", "Vertigo", "Keepers Altar", "The Arch", "Desolate Deep"},
+    Multi = false,
+    Default = 1,
+})
 
--- Remove existing GUI if present
-local existing = CoreGui:FindFirstChild("MidnightHubRevive")
-if existing then
-    existing:Destroy()
-    debug("Removed existing GUI")
-end
-
--- Create ScreenGui with proper parent
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "MidnightHubRevive"
-ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-ScreenGui.ResetOnSpawn = false
-ScreenGui.DisplayOrder = 999999999
-
--- Try to set ScreenGui parent
-local success, err = pcall(function()
-    ScreenGui.Parent = CoreGui
+IslandTPDropdownUI:OnChanged(function(Value)
+    SelectedIsland = Value
 end)
 
-if not success then
-    warn("Failed to parent ScreenGui to CoreGui:", err)
-    -- Fallback to PlayerGui if CoreGui fails
-    ScreenGui.Parent = Players.LocalPlayer:WaitForChild("PlayerGui")
+Tabs.Teleports:AddButton({
+    Title = "Teleport to Island",
+    Callback = function()
+        local locations = {
+            ["Moosewood"] = CFrame.new(382.893, 134.501, 242.632),
+            ["Roslit Bay"] = CFrame.new(game:GetService("Workspace").world.spawns.TpSpots.roslit.Position),
+            ["Terrapin"] = CFrame.new(-146.693, 144.931, 1903.16),
+            ["Sunstone"] = CFrame.new(game:GetService("Workspace").world.spawns.TpSpots.sunstone.Position),
+            ["Statue of Sovereignty"] = CFrame.new(game:GetService("Workspace").world.spawns.TpSpots.statue.Position),
+            ["Mushgrove Swamp"] = CFrame.new(game:GetService("Workspace").world.spawns.TpSpots.mushgrove.Position),
+            ["Snowcap"] = CFrame.new(game:GetService("Workspace").world.spawns.TpSpots.snowcap.Position),
+            ["Vertigo"] = CFrame.new(game:GetService("Workspace").world.spawns.TpSpots.vertigo.Position),
+            ["Keepers Altar"] = CFrame.new(1317.79, -805.292, -111.615),
+            ["The Arch"] = CFrame.new(game:GetService("Workspace").world.spawns.TpSpots.arch.Position),
+            ["Desolate Deep"] = CFrame.new(-1525.859, -234.701, -2856.092),
+        }
+
+        if locations[SelectedIsland] then
+            -- Add error handling for teleports
+            local success, error = pcall(function()
+                LocalPlayer.Character.HumanoidRootPart.CFrame = locations[SelectedIsland]
+            end)
+            
+            if success then
+                ShowNotification("Teleported", "Successfully teleported to " .. SelectedIsland)
+            else
+                ShowNotification("Error", "Failed to teleport: " .. tostring(error))
+            end
+        else
+            ShowNotification("Error", "Location not found!")
+        end
+    end
+})
+
+-- World Event Teleports
+local SelectedWorldEvent = "Traveler Merchant"
+local WorldEventTPDropdownUI = Tabs.Teleports:AddDropdown("WorldEventTPDropdownUI", {
+    Title = "Select a World Event",
+    Values = {"Traveler Merchant", "Strange Whirlpool"},
+    Multi = false,
+    Default = 1,
+})
+
+WorldEventTPDropdownUI:OnChanged(function(Value)
+    SelectedWorldEvent = Value
+end)
+
+Tabs.Teleports:AddButton({
+    Title = "Teleport to World Event",
+    Callback = function()
+        local success, error = pcall(function()
+            if SelectedWorldEvent == "Traveler Merchant" then
+                if game.Workspace.active:FindFirstChild("Merchant Boat") then
+                    LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(game.Workspace.active["Merchant Boat"].Boat["Merchant Boat"].r.HandlesR.Position)
+                else
+                    ShowNotification("Error", "Merchant Boat not found in the world!")
+                    return
+                end
+            elseif SelectedWorldEvent == "Strange Whirlpool" then
+                if game.Workspace.zones.fishing:FindFirstChild("Isonade") then
+                    local offset = Vector3.new(0, 125, 0)
+                    LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(game.Workspace.zones.fishing.Isonade.Position + offset)
+                else
+                    ShowNotification("Error", "Whirlpool not found in the world!")
+                    return
+                end
+            end
+        end)
+        
+        if success then
+            ShowNotification("Teleported", "Successfully teleported to " .. SelectedWorldEvent)
+        else
+            ShowNotification("Error", "Failed to teleport: " .. tostring(error))
+        end
+    end
+})
+
+Tabs.Teleports:AddButton({
+    Title = "Teleport to Trident",
+    Callback = function()
+        local success, error = pcall(function()
+            LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(-1483.99304, -225.975464, -2201.59741)
+        end)
+        
+        if success then
+            ShowNotification("Teleported", "Successfully teleported to Trident")
+        else
+            ShowNotification("Error", "Failed to teleport: " .. tostring(error))
+        end
+    end
+})
+
+-- Sell Tab
+Tabs.Sells:AddButton({
+    Title = "Sell All Fish",
+    Callback = function()
+        local success, error = pcall(function()
+            workspace:WaitForChild("world"):WaitForChild("npcs"):WaitForChild("Marc Merchant"):WaitForChild("merchant"):WaitForChild("sellall"):InvokeServer()
+        end)
+        
+        if success then
+            ShowNotification("Sold", "All fish have been sold.")
+        else
+            ShowNotification("Error", "Failed to sell fish: " .. tostring(error))
+        end
+    end
+})
+
+Tabs.Sells:AddButton({
+    Title = "Sell Equipped Fish",
+    Callback = function()
+        local success, error = pcall(function()
+            workspace:WaitForChild("world"):WaitForChild("npcs"):WaitForChild("Marc Merchant"):WaitForChild("merchant"):WaitForChild("sell"):InvokeServer()
+        end)
+        
+        if success then
+            ShowNotification("Sold", "Equipped fish has been sold.")
+        else
+            ShowNotification("Error", "Failed to sell equipped fish: " .. tostring(error))
+        end
+    end
+})
+
+-- Auto Sell Feature
+Tabs.Sells:AddToggle("AutoSellToggle", {
+    Title = "Enable Auto Sell",
+    Default = false,
+    Callback = function(Value)
+        AutoSell = Value
+        
+        -- Auto sell loop
+        spawn(function()
+            while AutoSell do
+                if os.time() - lastSellTime >= sellCooldown then
+                    local success, error = pcall(function()
+                        workspace:WaitForChild("world"):WaitForChild("npcs"):WaitForChild("Marc Merchant"):WaitForChild("merchant"):WaitForChild("sellall"):InvokeServer()
+                    end)
+                    
+                    if success then
+                        lastSellTime = os.time()
+                        ShowNotification("Auto Sell", "Fish sold automatically.")
+                    else
+                        ShowNotification("Auto Sell Error", "Failed to sell fish: " .. tostring(error))
+                    end
+                end
+                wait(1)
+            end
+        end)
+    end
+})
+
+Tabs.Sells:AddSlider("SellCooldownSlider", {
+    Title = "Sell Cooldown (seconds)",
+    Min = 1,
+    Max = 60,
+    Default = 5,
+    Rounding = 0,
+    Callback = function(Value)
+        sellCooldown = Value
+    end
+})
+
+-- Auto Fish Tab
+local AutoFishing = false
+
+-- Function to check if an item is a fishing rod
+local function isRod(item)
+    -- Common fishing rod patterns
+    local rodPatterns = {
+        "rod", "Rod", "fishing", "Fishing", "pole", "Pole", "caster", "Caster"
+    }
+    
+    if item and item:IsA("Tool") then
+        for _, pattern in ipairs(rodPatterns) do
+            if item.Name:find(pattern) then
+                return true
+            end
+        end
+    end
+    
+    return false
 end
 
-debug("Created ScreenGui")
+-- Function to get the currently equipped rod
+local function getEquippedRod()
+    -- Check if any equipped item is a rod
+    for _, item in pairs(LocalPlayer.Character:GetChildren()) do
+        if item:IsA("Tool") and isRod(item) then
+            return item
+        end
+    end
+    return nil
+end
 
--- Main Frame
-local MainFrame = Instance.new("Frame")
-MainFrame.Name = "MainFrame"
-MainFrame.Size = UDim2.new(0, 480, 0, 338)
-MainFrame.Position = UDim2.new(0.5, -240, 0.5, -169)
-MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-MainFrame.BorderSizePixel = 0
-MainFrame.Active = true -- Enable interaction
-MainFrame.Parent = ScreenGui
+-- Get all remotes in game
+local function getAllFishingRemotes()
+    local fishingRemotes = {}
+    
+    -- Check ReplicatedStorage
+    local repStorage = game:GetService("ReplicatedStorage")
+    
+    -- Common remote paths for fishing games
+    local possiblePaths = {
+        repStorage:FindFirstChild("FishingSystem"),
+        repStorage:FindFirstChild("events"),
+        repStorage:FindFirstChild("Remotes"),
+        repStorage:FindFirstChild("Network"),
+        repStorage:FindFirstChild("Fishing")
+    }
+    
+    -- Check all possible paths
+    for _, path in pairs(possiblePaths) do
+        if path then
+            for _, remote in pairs(path:GetDescendants()) do
+                if remote:IsA("RemoteEvent") or remote:IsA("RemoteFunction") then
+                    table.insert(fishingRemotes, remote)
+                end
+            end
+        end
+    end
+    
+    return fishingRemotes
+end
 
-debug("Created MainFrame")
+-- Universal fishing function with retry mechanism
+local function universalFish()
+    -- Get currently equipped rod
+    local equippedRod = getEquippedRod()
+    
+    if not equippedRod then
+        -- No rod equipped, try to equip one from backpack
+        for _, item in pairs(LocalPlayer.Backpack:GetChildren()) do
+            if isRod(item) then
+                item.Parent = LocalPlayer.Character
+                ShowNotification("Fishing", "Equipped " .. item.Name)
+                wait(0.5) -- Wait for equip animation
+                equippedRod = item
+                break
+            end
+        end
+    end
+    
+    if equippedRod then
+        ShowNotification("Fishing", "Using " .. equippedRod.Name)
+        
+        -- Try multiple fishing methods
+        local fishSuccess = false
+        
+        -- Method 1: Try rod-specific events
+        if not fishSuccess and equippedRod:FindFirstChild("events") then
+            local events = equippedRod.events:GetChildren()
+            for _, event in pairs(events) do
+                if event.Name:lower():find("cast") then
+                    local success, error = pcall(function()
+                        event:FireServer(81.6, 1) -- Common cast arguments
+                    end)
+                    
+                    if success then
+                        fishSuccess = true
+                        wait(3) -- Wait for fish to bite
+                        
+                        -- Try to reel in
+                        for _, reelEvent in pairs(events) do
+                            if reelEvent.Name:lower():find("reel") then
+                                pcall(function()
+                                    reelEvent:FireServer(100, false)
+                                end)
+                            end
+                        end
+                    end
+                end
+            end
+        end
+        
+        -- Method 2: Try game fishing system
+        if not fishSuccess then
+            local fishingSystem = game:GetService("ReplicatedStorage"):FindFirstChild("FishingSystem")
+            if fishingSystem then
+                local success, error = pcall(function()
+                    local castRod = fishingSystem:FindFirstChild("CastRod")
+                    if castRod and castRod:IsA("RemoteFunction") then
+                        castRod:InvokeServer()
+                        wait(3) -- Wait for fish to bite
+                        
+                        local reelIn = fishingSystem:FindFirstChild("ReelIn")
+                        if reelIn and reelIn:IsA("RemoteFunction") then
+                            reelIn:InvokeServer()
+                        end
+                    end
+                end)
+                
+                if success then
+                    fishSuccess = true
+                end
+            end
+        end
+        
+        -- Method 3: Try common remote names in ReplicatedStorage
+        if not fishSuccess then
+            local allRemotes = getAllFishingRemotes()
+            
+            -- Try to find cast remote
+            for _, remote in pairs(allRemotes) do
+                if remote.Name:lower():find("cast") or remote.Name:lower():find("throw") then
+                    local success, error = pcall(function()
+                        if remote:IsA("RemoteFunction") then
+                            remote:InvokeServer()
+                        else
+                            remote:FireServer()
+                        end
+                    end)
+                    
+                    if success then
+                        wait(3) -- Wait for fish to bite
+                        
+                        -- Try to find reel remote
+                        for _, reelRemote in pairs(allRemotes) do
+                            if reelRemote.Name:lower():find("reel") or reelRemote.Name:lower():find("catch") then
+                                pcall(function()
+                                    if reelRemote:IsA("RemoteFunction") then
+                                        reelRemote:InvokeServer()
+                                    else
+                                        reelRemote:FireServer()
+                                    end
+                                end)
+                                fishSuccess = true
+                                break
+                            end
+                        end
+                    end
+                    
+                    if fishSuccess then break end
+                end
+            end
+        }
+        
+        if fishSuccess then
+            return true
+        else
+            ShowNotification("Fishing Error", "Failed to fish with current method")
+            return false
+        end
+    else
+        ShowNotification("Error", "No fishing rod found!")
+        return false
+    end
+end
 
--- Make frame draggable
-local UserInputService = game:GetService("UserInputService")
-local dragging
-local dragInput
-local dragStart
-local startPos
+Tabs.AutoFish:AddToggle("AutoFishToggle", {
+    Title = "Enable Auto Fishing",
+    Default = false,
+    Callback = function(Value)
+        AutoFishing = Value
+        startTime = os.time() -- Reset the timer
+        fishCount = 0 -- Reset fish count
+        
+        -- Auto fishing loop
+        spawn(function()
+            while AutoFishing do
+                local success = universalFish()
+                if success then
+                    fishCount = fishCount + 1
+                end
+                wait(waittime)
+            end
+        end)
+    end
+})
 
-MainFrame.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        dragging = true
-        dragStart = input.Position
-        startPos = MainFrame.Position
+Tabs.AutoFish:AddSlider("AutoFishDelay", {
+    Title = "Fishing Delay",
+    Min = 0.001,
+    Max = 5,
+    Default = 0.5, -- Increased default for better reliability
+    Rounding = 3,
+    Callback = function(Value)
+        waittime = Value
+    end
+})
+
+-- Stats display
+local StatsSection = Tabs.AutoFish:AddSection("Fishing Stats")
+
+-- Stats labels
+local FishCountLabel = Tabs.AutoFish:AddLabel("Fish Caught: 0")
+local TimeElapsedLabel = Tabs.AutoFish:AddLabel("Time Elapsed: 00:00:00")
+local FishPerMinuteLabel = Tabs.AutoFish:AddLabel("Fish Per Minute: 0")
+
+-- Update stats every second
+spawn(function()
+    while wait(1) do
+        if AutoFishing then
+            local timeElapsed = os.time() - startTime
+            local hours = math.floor(timeElapsed / 3600)
+            local minutes = math.floor((timeElapsed % 3600) / 60)
+            local seconds = timeElapsed % 60
+            local timeString = string.format("%02d:%02d:%02d", hours, minutes, seconds)
+            
+            local fishPerMinute = 0
+            if timeElapsed > 0 then
+                fishPerMinute = math.floor((fishCount / timeElapsed) * 60)
+            end
+            
+            FishCountLabel:Set("Fish Caught: " .. fishCount)
+            TimeElapsedLabel:Set("Time Elapsed: " .. timeString)
+            FishPerMinuteLabel:Set("Fish Per Minute: " .. fishPerMinute)
+        end
     end
 end)
 
-MainFrame.InputChanged:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseMovement then
-        dragInput = input
+-- Rod detection helper
+Tabs.AutoFish:AddButton({
+    Title = "Find Equipped Rod Info",
+    Callback = function()
+        local equippedRod = nil
+        
+        -- Check if any equipped item is a rod
+        for _, item in pairs(LocalPlayer.Character:GetChildren()) do
+            if item:IsA("Tool") then
+                equippedRod = item
+                break
+            end
+        end
+        
+        if equippedRod then
+            ShowNotification("Rod Info", "Found rod: " .. equippedRod.Name)
+            
+            -- Log rod details to help debug
+            print("==== ROD DETAILS ====")
+            print("Rod Name: " .. equippedRod.Name)
+            
+            -- Check for events
+            if equippedRod:FindFirstChild("events") then
+                print("Events found:")
+                for _, event in pairs(equippedRod.events:GetChildren()) do
+                    print("- " .. event.Name)
+                end
+            else
+                print("No events folder found")
+            end
+            
+            -- Check ReplicatedStorage for related events
+            local repStorage = game:GetService("ReplicatedStorage")
+            
+            -- Check common fishing remote paths
+            local commonPaths = {
+                repStorage:FindFirstChild("FishingSystem"),
+                repStorage:FindFirstChild("events"),
+                repStorage:FindFirstChild("Remotes"),
+                repStorage:FindFirstChild("Network"),
+                repStorage:FindFirstChild("Fishing")
+            }
+            
+            print("\nReplicatedStorage fishing remotes:")
+            for _, path in pairs(commonPaths) do
+                if path then
+                    for _, remote in pairs(path:GetDescendants()) do
+                        if remote:IsA("RemoteEvent") or remote:IsA("RemoteFunction") then
+                            print("- " .. remote:GetFullName())
+                        end
+                    end
+                end
+            end
+            
+            print("==== END ROD DETAILS ====")
+        else
+            ShowNotification("Error", "No rod equipped!")
+        end
     end
-end)
+})
 
-MainFrame.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        dragging = false
+-- Find all fishing remotes button
+Tabs.AutoFish:AddButton({
+    Title = "Find All Fishing Remotes",
+    Callback = function()
+        local remotes = getAllFishingRemotes()
+        print("==== FISHING REMOTES ====")
+        for i, remote in ipairs(remotes) do
+            print(i .. ". " .. remote:GetFullName())
+        end
+        print("==== END FISHING REMOTES ====")
+        ShowNotification("Remotes", "Found " .. #remotes .. " possible fishing remotes. Check console (F9).")
     end
-end)
+})
 
-UserInputService.InputChanged:Connect(function(input)
-    if input == dragInput and dragging then
-        local delta = input.Position - dragStart
-        MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X,
-            startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+-- Find fishing game type
+Tabs.Misc:AddButton({
+    Title = "Detect Fishing Game Type",
+    Callback = function()
+        -- Common structures in fishing games
+        local gameTypes = {
+            {name = "Standard Fishing Simulator", check = function() 
+                return game:GetService("ReplicatedStorage"):FindFirstChild("FishingSystem") ~= nil 
+            end},
+            {name = "Fishing Simulator", check = function() 
+                return workspace:FindFirstChild("world") and workspace.world:FindFirstChild("npcs") 
+            end},
+            {name = "Ultimate Fishing Simulator", check = function() 
+                return game:GetService("ReplicatedStorage"):FindFirstChild("Network") and 
+                       game:GetService("ReplicatedStorage").Network:FindFirstChild("Fish") 
+            end},
+            {name = "Fishing Adventure", check = function() 
+                return game:GetService("ReplicatedStorage"):FindFirstChild("Remotes") and 
+                       game:GetService("ReplicatedStorage").Remotes:FindFirstChild("FishCaught") 
+            end}
+        }
+        
+        local detectedType = "Unknown Fishing Game"
+        
+        for _, gameType in ipairs(gameTypes) do
+            if gameType.check() then
+                detectedType = gameType.name
+                break
+            end
+        end
+        
+        ShowNotification("Game Type", "Detected: " .. detectedType)
+        print("Game type: " .. detectedType)
     end
-end)
+})
 
-debug("Set up dragging")
+-- Misc Tab
+Tabs.Misc:AddButton({
+    Title = "Infinite Yield",
+    Callback = function()
+        loadstring(game:HttpGet('https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source'))()
+        ShowNotification("Loaded", "Infinite Yield admin commands loaded")
+    end
+})
 
--- Top Bar
-local TopBar = Instance.new("Frame")
-TopBar.Name = "TopBar"
-TopBar.Size = UDim2.new(1, 0, 0, 40)
-TopBar.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
-TopBar.BorderSizePixel = 0
-TopBar.Parent = MainFrame
+Tabs.Misc:AddButton({
+    Title = "Reset Character",
+    Callback = function()
+        LocalPlayer.Character:BreakJoints()
+        ShowNotification("Reset", "Character has been reset")
+    end
+})
 
-debug("Created TopBar")
+Tabs.Misc:AddSlider("WalkSpeedSlider", {
+    Title = "Walk Speed",
+    Min = 16,
+    Max = 500,
+    Default = 16,
+    Rounding = 0,
+    Callback = function(Value)
+        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+            LocalPlayer.Character.Humanoid.WalkSpeed = Value
+        end
+    end
+})
 
--- Title
-local Title = Instance.new("TextLabel")
-Title.Name = "Title"
-Title.Size = UDim2.new(1, -40, 1, 0)
-Title.Position = UDim2.new(0, 10, 0, 0)
-Title.BackgroundTransparency = 1
-Title.Text = "Midnight Hub | Revive"
-Title.TextColor3 = Color3.fromRGB(255, 255, 255)
-Title.TextSize = 22
-Title.Font = Enum.Font.GothamBold
-Title.Parent = TopBar
+Tabs.Misc:AddSlider("JumpPowerSlider", {
+    Title = "Jump Power",
+    Min = 50,
+    Max = 500,
+    Default = 50,
+    Rounding = 0,
+    Callback = function(Value)
+        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+            LocalPlayer.Character.Humanoid.JumpPower = Value
+        end
+    end
+})
 
-debug("Created Title")
+-- Anti-AFK
+local AntiAFK = Tabs.Misc:AddToggle("AntiAFKToggle", {
+    Title = "Anti-AFK",
+    Default = true,
+    Callback = function(Value)
+        if Value then
+            local VirtualUser = game:GetService("VirtualUser")
+            LocalPlayer.Idled:Connect(function()
+                VirtualUser:CaptureController()
+                VirtualUser:ClickButton2(Vector2.new())
+                ShowNotification("Anti-AFK", "Prevented AFK kick")
+            end)
+            ShowNotification("Anti-AFK", "Anti-AFK system enabled")
+        end
+    end
+})
 
--- Function to create buttons
-local function createButton(text, pos)
-    local button = Instance.new("TextButton")
-    button.Size = UDim2.new(0.48, 0, 0, 40)
-    button.Position = pos
-    button.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
-    button.BorderSizePixel = 0
-    button.Text = text
-    button.TextColor3 = Color3.fromRGB(255, 255, 255)
-    button.TextSize = 14
-    button.Font = Enum.Font.GothamBold
-    button.AutoButtonColor = true
-    button.Parent = MainFrame
-    debug("Created button: " .. text)
-    return button
-end
+-- Initialize SaveManager
+SaveManager:SetLibrary(Fluent)
+InterfaceManager:SetLibrary(Fluent)
+SaveManager:IgnoreThemeSettings()
+SaveManager:SetIgnoreIndexes({"MinimizeKey"})
+InterfaceManager:SetFolder("FishingSimulator")
+SaveManager:SetFolder("FishingSimulator/Configs")
+SaveManager:BuildConfigSection(Tabs.Misc)
 
--- Create Buttons
-local AutoFishBtn = createButton("Auto Fish", UDim2.new(0, 10, 0, 50))
-local AutoSellBtn = createButton("Auto Sell", UDim2.new(0.52, 0, 0, 50))
-local CreatureAuraBtn = createButton("Creature Aura", UDim2.new(0, 10, 0, 100))
-local CreatureLocatorBtn = createButton("Creature Locator", UDim2.new(0.52, 0, 0, 100))
-local GamepassesBtn = createButton("Gamepasses", UDim2.new(0, 10, 0, 150))
-local BoatModsBtn = createButton("Boat Mods", UDim2.new(0.52, 0, 0, 150))
-local AutoObbyBtn = createButton("Auto Complete Obby", UDim2.new(0, 10, 0, 200))
-local BoatTPBtn = createButton("Teleport to Boat", UDim2.new(0.52, 0, 0, 200))
+-- Load the interface
+InterfaceManager:BuildInterfaceSection(Tabs.Misc)
 
--- Status Label
-local StatusLabel = Instance.new("TextLabel")
-StatusLabel.Size = UDim2.new(1, -20, 0, 30)
-StatusLabel.Position = UDim2.new(0, 10, 1, -40)
-StatusLabel.BackgroundTransparency = 1
-StatusLabel.Text = "Status: Ready"
-StatusLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-StatusLabel.TextSize = 14
-StatusLabel.Font = Enum.Font.Gotham
-StatusLabel.Parent = MainFrame
+-- Initialize
+SaveManager:LoadAutoloadConfig()
 
-debug("Created StatusLabel")
-
--- Close Button
-local CloseButton = Instance.new("TextButton")
-CloseButton.Name = "CloseButton"
-CloseButton.Size = UDim2.new(0, 40, 0, 40)
-CloseButton.Position = UDim2.new(1, -40, 0, 0)
-CloseButton.BackgroundTransparency = 1
-CloseButton.Text = "×"
-CloseButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-CloseButton.TextSize = 24
-CloseButton.Font = Enum.Font.GothamBold
-CloseButton.Parent = TopBar
-
-CloseButton.MouseButton1Click:Connect(function()
-    ScreenGui:Destroy()
-    debug("GUI Closed")
-end)
-
-debug("Created CloseButton")
-
--- Button functionality
-local Enabled = false
-
-AutoFishBtn.MouseButton1Click:Connect(function()
-    Enabled = not Enabled
-    AutoFishBtn.BackgroundColor3 = Enabled and Color3.fromRGB(0, 255, 127) or Color3.fromRGB(45, 45, 45)
-    StatusLabel.Text = Enabled and "Status: Auto Fishing Active" or "Status: Inactive"
-    debug("Auto Fish toggled: " .. tostring(Enabled))
-end)
-
-AutoSellBtn.MouseButton1Click:Connect(function()
-    _G.autoSell = not _G.autoSell
-    AutoSellBtn.BackgroundColor3 = _G.autoSell and Color3.fromRGB(0, 255, 127) or Color3.fromRGB(45, 45, 45)
-    StatusLabel.Text = _G.autoSell and "Status: Auto Selling" or "Status: Inactive"
-    debug("Auto Sell toggled: " .. tostring(_G.autoSell))
-end)
-
-debug("Script finished loading")
+-- Initial notification
+ShowNotification("GUI Loaded", "Universal Fishing Simulator GUI is ready!")
