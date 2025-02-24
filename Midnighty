@@ -510,20 +510,36 @@ Notification:Notify(
 task.wait(5)
 while true do
     local a, b = pcall(function()
-        local CreateError = {}
+        -- Initialize fishing rod variable
+        CalibrationData.FishingRod = nil
+        
+        -- Find fishing rod in character
         for i, v in pairs(game.Players.LocalPlayer.Character:GetChildren()) do
             if v:IsA("Tool") then
                 CalibrationData.FishingRod = v.Name
+                break
             end
         end
+        
+        -- Check if fishing rod was found
+        if CalibrationData.FishingRod == nil then
+            Notification:Notify(
+                "warning",
+                "No Fishing Rod Found",
+                "Please equip your fishing rod and try again.",
+                5
+            )
+            task.wait(5)
+            return -- Skip to next loop iteration without error
+        end
+        
+        -- Get positions
         CalibrationData.Positions = {}
         for i, v in pairs(game:GetService("Workspace").zones.player:GetChildren()) do
             CalibrationData.Positions[v.Name] = v.Position
         end
-        if CalibrationData.FishingRod == nil then
-            local E = CreateError[1]+1
-        end
     end)
+    
     if a == false then
         Notification:Notify(
             "warning",
@@ -539,15 +555,20 @@ while true do
         )
         task.wait(5)
     else
-        Notification:Notify(
-            "info",
-            "Calibration Successful",
-            "Now loading script...",
-            5
-        )
-        task.wait(5)
-        FischUser.Initialize()
-        UI.Initialize()
-        break
+        -- Only proceed if fishing rod was found
+        if CalibrationData.FishingRod then
+            Notification:Notify(
+                "info",
+                "Calibration Successful",
+                "Now loading script...",
+                5
+            )
+            task.wait(5)
+            FischUser.Initialize()
+            UI.Initialize()
+            break
+        end
     end
 end
+
+return FischAPI
