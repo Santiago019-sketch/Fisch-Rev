@@ -1,234 +1,302 @@
--- // // // Features List // // // --
+-- Fishing Script with GUI
+-- Compatible with any fishing rod
 
-local AutoFish = false
-local Dupe = false
-local IngredientFarm = false
-local AutoPot = false
-local AutoCrabCages = false
+local player = game:GetService("Players").LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local UIS = game:GetService("UserInputService")
+local replicatedStorage = game:GetService("ReplicatedStorage")
 
--- // // // Variables // // // --
+-- Variables
+local autoReelEnabled = false
+local autoShakeEnabled = false
+local autoCastEnabled = false
+local rodCastDistance = 29 -- Default cast distance
+local guiVisible = true
 
-local Players = game:GetService('Players')
-local CoreGui = game:GetService('StarterGui')
-local GuiService = game:GetService('GuiService')
-local ReplicatedStorage = game:GetService('ReplicatedStorage')
-local ContextActionService = game:GetService('ContextActionService')
-local VirtualInputManager = game:GetService('VirtualInputManager')
-local UserInputService = game:GetService('UserInputService')
-local LocalPlayer = Players.LocalPlayer
+-- GUI Setup
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "FishingHelper"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Parent = player.PlayerGui
 
--- // // // UI Library Loading // // // --
+-- Main Frame
+local mainFrame = Instance.new("Frame")
+mainFrame.Name = "MainFrame"
+mainFrame.Size = UDim2.new(0, 200, 0, 160)
+mainFrame.Position = UDim2.new(0.8, 0, 0.5, 0)
+mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+mainFrame.BorderSizePixel = 0
+mainFrame.Active = true
+mainFrame.Draggable = true
+mainFrame.Parent = ScreenGui
 
-local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
-local SaveManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/SaveManager.lua"))()
-local InterfaceManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/InterfaceManager.lua"))()
+-- Title Bar
+local titleBar = Instance.new("Frame")
+titleBar.Name = "TitleBar"
+titleBar.Size = UDim2.new(1, 0, 0, 30)
+titleBar.BackgroundColor3 = Color3.fromRGB(40, 100, 160)
+titleBar.BorderSizePixel = 0
+titleBar.Parent = mainFrame
 
-local Window = Fluent:CreateWindow({
-    Title = "CER3 - Fisch",
-    SubTitle = "v.beta",
-    TabWidth = 160,
-    Size = UDim2.fromOffset(580, 460),
-    Acrylic = false, 
-    Theme = "Dark",
-    MinimizeKey = Enum.KeyCode.LeftControl
-})
+local titleText = Instance.new("TextLabel")
+titleText.Name = "Title"
+titleText.Size = UDim2.new(0.7, 0, 1, 0)
+titleText.Position = UDim2.new(0, 10, 0, 0)
+titleText.Text = "Fishing Helper"
+titleText.TextColor3 = Color3.fromRGB(255, 255, 255)
+titleText.TextSize = 16
+titleText.Font = Enum.Font.SourceSansBold
+titleText.BackgroundTransparency = 1
+titleText.TextXAlignment = Enum.TextXAlignment.Left
+titleText.Parent = titleBar
 
-local WindowHidden = false
+-- Toggle Visibility Button
+local toggleButton = Instance.new("TextButton")
+toggleButton.Name = "ToggleButton"
+toggleButton.Size = UDim2.new(0.2, 0, 1, 0)
+toggleButton.Position = UDim2.new(0.8, 0, 0, 0)
+toggleButton.BackgroundColor3 = Color3.fromRGB(200, 60, 60)
+toggleButton.Text = "X"
+toggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+toggleButton.TextSize = 16
+toggleButton.Font = Enum.Font.SourceSansBold
+toggleButton.BorderSizePixel = 0
+toggleButton.Parent = titleBar
 
--- // Directly Load Main Tabs // --
-local Tabs = { 
-    AutoFish = Window:AddTab({ Title = "Auto Fish", Icon = "mouse" }),
-    Teleports = Window:AddTab({ Title = "Teleports", Icon = "map-pin" }),
-    Sells = Window:AddTab({ Title = "Sell", Icon = "piggy-bank" }),
-    Player = Window:AddTab({ Title = "Player", Icon = "user" }),
-    Misc = Window:AddTab({ Title = "Misc", Icon = "globe" }),
-    Settings = Window:AddTab({ Title = "Settings", Icon = "settings" })
-}
+-- Auto Reel Button
+local autoReelButton = Instance.new("TextButton")
+autoReelButton.Name = "AutoReelButton"
+autoReelButton.Size = UDim2.new(0.9, 0, 0, 25)
+autoReelButton.Position = UDim2.new(0.05, 0, 0.25, 0)
+autoReelButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+autoReelButton.Text = "Auto Reel: OFF"
+autoReelButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+autoReelButton.TextSize = 14
+autoReelButton.Font = Enum.Font.SourceSans
+autoReelButton.BorderSizePixel = 0
+autoReelButton.Parent = mainFrame
 
-Window:SelectTab(1)
+-- Auto Shake Button
+local autoShakeButton = Instance.new("TextButton")
+autoShakeButton.Name = "AutoShakeButton"
+autoShakeButton.Size = UDim2.new(0.9, 0, 0, 25)
+autoShakeButton.Position = UDim2.new(0.05, 0, 0.45, 0)
+autoShakeButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+autoShakeButton.Text = "Auto Shake: OFF"
+autoShakeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+autoShakeButton.TextSize = 14
+autoShakeButton.Font = Enum.Font.SourceSans
+autoShakeButton.BorderSizePixel = 0
+autoShakeButton.Parent = mainFrame
 
-ShowNotification("CER3 Has Successfully Loaded.")
+-- Auto Cast Button
+local autoCastButton = Instance.new("TextButton")
+autoCastButton.Name = "AutoCastButton"
+autoCastButton.Size = UDim2.new(0.9, 0, 0, 25)
+autoCastButton.Position = UDim2.new(0.05, 0, 0.65, 0)
+autoCastButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+autoCastButton.Text = "Auto Cast: OFF"
+autoCastButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+autoCastButton.TextSize = 14
+autoCastButton.Font = Enum.Font.SourceSans
+autoCastButton.BorderSizePixel = 0
+autoCastButton.Parent = mainFrame
 
--- // // // Features // // // --
+-- Cast Distance Adjuster
+local castDistance = Instance.new("TextBox")
+castDistance.Name = "CastDistance"
+castDistance.Size = UDim2.new(0.9, 0, 0, 25)
+castDistance.Position = UDim2.new(0.05, 0, 0.85, 0)
+castDistance.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+castDistance.Text = tostring(rodCastDistance)
+castDistance.PlaceholderText = "Cast Distance"
+castDistance.TextColor3 = Color3.fromRGB(255, 255, 255)
+castDistance.TextSize = 14
+castDistance.Font = Enum.Font.SourceSans
+castDistance.BorderSizePixel = 0
+castDistance.Parent = mainFrame
 
--- // Auto Fish // --
-
-local Enabled = false
-local Rod = false
-local Casted = false
-local Progress = false
-local Finished = false
-
-local ZoneFish = false
-
-local Keybind = Enum.KeyCode.Q
-local waittime = 0.001
-
-function ToggleFarm(Name, State, Input)
-    if State == Enum.UserInputState.Begin then
-        Enabled = not Enabled
-
-        if not Enabled then
-            Finished = false
-            Progress = false
-
-            if Rod then
-                Rod.events.reset:FireServer()
-            end
-        end
-    end
-end
-
-LocalPlayer.Character.ChildAdded:Connect(function(Child)
-    if Child:IsA('Tool') and Child.Name:lower():find('rod') then
-        Rod = Child
-    end
-end)
-
-LocalPlayer.Character.ChildRemoved:Connect(function(Child)
-    if Child == Rod then
-        Enabled = false
-        Finished = false
-        Progress = false
-        Rod = nil
-    end
-end)
-
-LocalPlayer.PlayerGui.DescendantAdded:Connect(function(Descendant)
-    if Enabled and AutoFish then
-        if Descendant.Name == 'button' and Descendant.Parent.Name == 'safezone' then
-            task.wait(waittime)
-            local buttonPosition = Descendant.AbsolutePosition
-            local buttonSize = Descendant.AbsoluteSize
-            local centerX = buttonPosition.X + buttonSize.X / 2
-            local centerY = buttonPosition.Y + buttonSize.Y / 2
-
-            VirtualInputManager:SendMouseButtonEvent(centerX, centerY, 0, true, game, 0)
-            VirtualInputManager:SendMouseButtonEvent(centerX, centerY, 0, false, game, 0)
-
-            task.wait(waittime)
-
-        elseif Descendant.Name == 'playerbar' and Descendant.Parent.Name == 'bar' then
-            local Finished = true
-            Descendant:GetPropertyChangedSignal('Position'):Wait()
-            ReplicatedStorage.events.reelfinished:FireServer(100, true)
-            task.wait(3.2)
-        end
-    end
-end)
-
-LocalPlayer.PlayerGui.DescendantRemoving:Connect(function(Descendant)
-    if Descendant.Name == 'reel' then
-        task.wait(1)
-        Finished = false
-        Progress = false
-    end
-end)
-
-coroutine.wrap(function()
-    while true do
-        if Enabled and AutoFish and not Progress then
-            if Rod then
-                Progress = true
-
-                task.wait(1)
-
-                Rod.events.reset:FireServer()
-                Rod.events.cast:FireServer(100.5)
-
-                task.wait(1)
-            end
-        end
-
-        task.wait()
-    end
-end)()
-
-local NewRod = LocalPlayer.Character:FindFirstChildWhichIsA('Tool')
-
-if NewRod and NewRod.Name:lower():find('rod') then
-    Rod = NewRod
-end
-
-if not UserInputService.KeyboardEnabled then
-    ContextActionService:BindAction('ToggleFarm', ToggleFarm, false, Keybind, Enum.UserInputType.Touch)
-    ContextActionService:SetTitle('ToggleFarm', 'Toggle Farm')
-    ContextActionService:SetPosition('ToggleFarm', UDim2.new(0.9, -50, 0.9, -150))
-else
-    ContextActionService:BindAction('ToggleFarm', ToggleFarm, false, Keybind)
-end
-
--- // // // Miscellaneous // // // --
-
-local followPlatform = Instance.new("Part")
-followPlatform.Size = Vector3.new(10, 2, 10)
-followPlatform.Anchored = true
-followPlatform.CanCollide = true
-followPlatform.Material = Enum.Material.ForceField
-followPlatform.Parent = game.Workspace
-
-local platform = Instance.new("Part")
-platform.Size = Vector3.new(20, 1, 20)
-platform.Position = Vector3.new(-1996, 79107, -1057)
-platform.Anchored = true
-platform.BrickColor = BrickColor.new("Bright blue")
-platform.Material = Enum.Material.ForceField
-platform.Parent = game.Workspace
-
-local function teleportToPlatform(player)
-    local character = player.Character
-    if character then
-        local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
-        if humanoidRootPart then
-            humanoidRootPart.CFrame = CFrame.new(platform.Position + Vector3.new(0, 3, 0))
-        end
-    end
-end
-
--- // Hide Identity // --
-
-local savedState = {}
-
-function SaveCurrentState()
-    local player = game.Players.LocalPlayer
+-- Function to get current fishing rod
+local function getCurrentRod()
     local character = player.Character or player.CharacterAdded:Wait()
-    savedState.accessories = {}
-    for _, accessory in ipairs(character:GetChildren()) do
-        if accessory:IsA("Accessory") then
-            table.insert(savedState.accessories, accessory:Clone())
+    
+    -- Search through all character items for a rod
+    for _, tool in pairs(character:GetChildren()) do
+        if tool:IsA("Tool") and tool:FindFirstChild("events") and tool.events:FindFirstChild("cast") then
+            return tool
         end
     end
-
-    savedState.shirt = character:FindFirstChildOfClass("Shirt") and character:FindFirstChildOfClass("Shirt"):Clone()
-    savedState.pants = character:FindFirstChildOfClass("Pants") and character:FindFirstChildOfClass("Pants"):Clone()
+    
+    return nil
 end
 
-function CustomizeAvatar(desiredColor)
-    local player = game.Players.LocalPlayer
-    local character = player.Character or player.CharacterAdded:Wait()
-
-    SaveCurrentState()
-
-    for _, accessory in ipairs(character:GetChildren()) do
-        if accessory:IsA("Accessory") then
-            accessory:Destroy()
-        end
-    end
-
-    for _, clothing in ipairs(character:GetChildren()) do
-        if clothing:IsA("Shirt") or clothing:IsA("Pants") then
-            clothing:Destroy()
-        end
-    end
-
-    local bodyParts = {"Head", "Torso", "Left Arm", "Right Arm", "Left Leg", "Right Leg"}
-
-    for _, partName in ipairs(bodyParts) do
-        local bodyPart = character:FindFirstChild(partName)
-        if bodyPart then
-            bodyPart.BrickColor = BrickColor.new(desiredColor)
-        end
+-- Function to perform a reel
+local function performReel()
+    local args = {
+        [1] = 100,  -- Success rate (100 is perfect)
+        [2] = true  -- Success boolean
+    }
+    
+    -- Find the correct remote event
+    local reelEvent = replicatedStorage.events:FindFirstChild("reelfinished") or 
+                      replicatedStorage.events:FindFirstChild("reelfinished ") -- Note the space
+    
+    if reelEvent then
+        reelEvent:FireServer(unpack(args))
+    else
+        print("Reel event not found!")
     end
 end
 
-ShowNotification("CER3 Has Successfully Loaded.")
+-- Function to perform a cast
+local function performCast()
+    local rod = getCurrentRod()
+    if not rod then
+        print("No fishing rod equipped!")
+        return
+    end
+    
+    local castEvent = rod.events.cast
+    if castEvent then
+        local args = {
+            [1] = rodCastDistance,
+            [2] = 1  -- Power multiplier
+        }
+        castEvent:FireServer(unpack(args))
+    else
+        print("Cast event not found!")
+    end
+end
+
+-- Function to perform a shake
+local function performShake()
+    local rod = getCurrentRod()
+    if not rod then
+        print("No fishing rod equipped!")
+        return
+    end
+    
+    -- Try different shake event names that might exist
+    local shakeEvent = rod.events:FindFirstChild("shake") or 
+                       rod.events:FindFirstChild("shaker") or
+                       replicatedStorage.events:FindFirstChild("rodshake")
+    
+    if shakeEvent then
+        shakeEvent:FireServer()
+    else
+        -- Try to directly modify rod properties if event doesn't exist
+        if rod:FindFirstChild("Handle") then
+            local originalCFrame = rod.Handle.CFrame
+            for i = 1, 5 do
+                rod.Handle.CFrame = originalCFrame * CFrame.new(math.random(-1, 1)/10, math.random(-1, 1)/10, math.random(-1, 1)/10)
+                wait(0.05)
+            end
+            rod.Handle.CFrame = originalCFrame
+        end
+    end
+end
+
+-- Button Functions
+toggleButton.MouseButton1Click:Connect(function()
+    if guiVisible then
+        autoReelButton.Visible = false
+        autoShakeButton.Visible = false
+        autoCastButton.Visible = false
+        castDistance.Visible = false
+        mainFrame.Size = UDim2.new(0, 200, 0, 30)
+        toggleButton.Text = "O"
+        toggleButton.BackgroundColor3 = Color3.fromRGB(60, 200, 60)
+    else
+        autoReelButton.Visible = true
+        autoShakeButton.Visible = true
+        autoCastButton.Visible = true
+        castDistance.Visible = true
+        mainFrame.Size = UDim2.new(0, 200, 0, 160)
+        toggleButton.Text = "X"
+        toggleButton.BackgroundColor3 = Color3.fromRGB(200, 60, 60)
+    end
+    guiVisible = not guiVisible
+end)
+
+autoReelButton.MouseButton1Click:Connect(function()
+    autoReelEnabled = not autoReelEnabled
+    autoReelButton.Text = "Auto Reel: " .. (autoReelEnabled and "ON" or "OFF")
+    autoReelButton.BackgroundColor3 = autoReelEnabled and Color3.fromRGB(60, 180, 60) or Color3.fromRGB(60, 60, 60)
+    
+    -- Start the auto reel loop if enabled
+    if autoReelEnabled then
+        spawn(function()
+            while autoReelEnabled do
+                performReel()
+                wait(1) -- Adjust timing as needed
+            end
+        end)
+    end
+end)
+
+autoShakeButton.MouseButton1Click:Connect(function()
+    autoShakeEnabled = not autoShakeEnabled
+    autoShakeButton.Text = "Auto Shake: " .. (autoShakeEnabled and "ON" or "OFF")
+    autoShakeButton.BackgroundColor3 = autoShakeEnabled and Color3.fromRGB(60, 180, 60) or Color3.fromRGB(60, 60, 60)
+    
+    -- Start the auto shake loop if enabled
+    if autoShakeEnabled then
+        spawn(function()
+            while autoShakeEnabled do
+                performShake()
+                wait(0.5) -- Adjust timing as needed
+            end
+        end)
+    end
+end)
+
+autoCastButton.MouseButton1Click:Connect(function()
+    autoCastEnabled = not autoCastEnabled
+    autoCastButton.Text = "Auto Cast: " .. (autoCastEnabled and "ON" or "OFF")
+    autoCastButton.BackgroundColor3 = autoCastEnabled and Color3.fromRGB(60, 180, 60) or Color3.fromRGB(60, 60, 60)
+    
+    -- Start the auto cast loop if enabled
+    if autoCastEnabled then
+        spawn(function()
+            while autoCastEnabled do
+                performCast()
+                wait(5) -- Adjust timing as needed
+            end
+        end)
+    end
+end)
+
+castDistance.FocusLost:Connect(function(enterPressed)
+    if enterPressed then
+        local newDistance = tonumber(castDistance.Text)
+        if newDistance and newDistance > 0 then
+            rodCastDistance = newDistance
+            castDistance.Text = tostring(rodCastDistance)
+        else
+            castDistance.Text = tostring(rodCastDistance)
+        end
+    end
+end)
+
+-- Update character reference when player respawns
+player.CharacterAdded:Connect(function(newCharacter)
+    character = newCharacter
+end)
+
+-- Notification when script loads
+local notification = Instance.new("TextLabel")
+notification.Name = "Notification"
+notification.Size = UDim2.new(0, 200, 0, 30)
+notification.Position = UDim2.new(0.5, -100, 0.8, 0)
+notification.Text = "Fishing Helper Loaded!"
+notification.TextColor3 = Color3.fromRGB(255, 255, 255)
+notification.TextSize = 16
+notification.Font = Enum.Font.SourceSansBold
+notification.BackgroundColor3 = Color3.fromRGB(40, 100, 160)
+notification.BackgroundTransparency = 0.3
+notification.BorderSizePixel = 0
+notification.Parent = ScreenGui
+
+game:GetService("Debris"):AddItem(notification, 3)
+
+print("Fishing helper script loaded successfully!")
