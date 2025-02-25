@@ -75,7 +75,9 @@ function UI.Initialize()
     
     -- Add new sections for enhanced teleports
     local IslandTeleports = AreaTeleportsTab:AddSection("Island Teleports", "right")
-    
+    local EventTeleports = AreaTeleportsTab:AddSection("Event Teleports", "right")
+    local SpecialTeleports = AreaTeleportsTab:AddSection("Special Teleports", "left")
+
     local Actions = Interactions:AddSection("Actions", "left")
 
     -- Added Auto Sell section
@@ -154,7 +156,41 @@ function UI.Initialize()
         end
         Notification:Notify("info", "Teleported", "Successfully teleported to " .. Internal.SelectedIsland, 3)
     end)
+    
+    -- Add World Event Teleport Dropdown
+    local WorldEventOptions = {"Traveler Merchant", "Strange Whirlpool"}
+    
+    EventTeleports:AddDropdown("Select World Event", WorldEventOptions, "Traveler Merchant", function(value)
+        Internal.SelectedWorldEvent = value
+    end)
+    
+    EventTeleports:AddButton("Teleport to World Event", function()
+        if Internal.SelectedWorldEvent == "Traveler Merchant" then
+            LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(game.Workspace.active["Merchant Boat"].Boat["Merchant Boat"].r.HandlesR.Position)
+        elseif Internal.SelectedWorldEvent == "Strange Whirlpool" then
+            local offset = Vector3.new(0, 125, 0)
+            LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(game.Workspace.zones.fishing.Isonade.Position + offset)
+        end
+        Notification:Notify("info", "Teleported", "Successfully teleported to " .. Internal.SelectedWorldEvent, 3)
+    end)
+    
+    -- Add Special Teleport Button
+    SpecialTeleports:AddButton("Teleport to Trident", function()
+        LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(-1483.99304, -225.975464, -2201.59741)
+        Notification:Notify("info", "Teleported", "Successfully teleported to the Trident", 3)
+    end)
 
+    Actions:AddButton("Open/Close Boat UI", function() 
+        FischUser.OpenBoatUI()
+    end)
+
+    CreditsSection:AddLabel("Fichy47 Script by dynamicarrays")
+    CreditsSection:AddButton(
+        "Discord",
+        function()
+            setclipboard("discord.gg/fichy47")
+        end
+    )
 
     local AbundanceZoneSection = FishingTab:AddSection("Abundances", "right")
     
