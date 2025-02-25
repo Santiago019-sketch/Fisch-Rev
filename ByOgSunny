@@ -2,6 +2,7 @@ local FischAPI = {}
 
 local VIM = game:GetService("VirtualInputManager")
 local GuiService = game:GetService("GuiService")
+local LocalPlayer = game.Players.LocalPlayer
 
 local VI = {}
 
@@ -24,7 +25,9 @@ local Internal = {
     Timer = 301,
     FloatPart = nil,
     LockedPosition = nil,
-    CurrentRod = nil
+    CurrentRod = nil,
+    SelectedIsland = "Moosewood",
+    SelectedWorldEvent = "Traveler Merchant"
 }
 
 local Utils = {}
@@ -54,7 +57,7 @@ end
 function UI.Initialize()
     --UI
 
-    local Windows = NEVERLOSE:AddWindow("oggsunny","oggsunny - Fisch - V0.0.3 - discord.gg/fichy47")
+    local Windows = NEVERLOSE:AddWindow("oggsunny","oggsunny - Fisch - V0.0.4 - discord.gg/fichy47")
 
     local FishingTab = Windows:AddTab("Fishing", "earth")
 
@@ -69,6 +72,11 @@ function UI.Initialize()
     local CreditsSection = FishingTab:AddSection("Credits", "right")
 
     local Teleports = AreaTeleportsTab:AddSection("Teleports", "left")
+    
+    -- Add new sections for enhanced teleports
+    local IslandTeleports = AreaTeleportsTab:AddSection("Island Teleports", "right")
+    local EventTeleports = AreaTeleportsTab:AddSection("Event Teleports", "right")
+    local SpecialTeleports = AreaTeleportsTab:AddSection("Special Teleports", "left")
 
     local Actions = Interactions:AddSection("Actions", "left")
 
@@ -113,6 +121,64 @@ function UI.Initialize()
             end
         )
     end
+    
+    -- Add Island Teleport Dropdown
+    local IslandOptions = {"Moosewood", "Roslit Bay", "Terrapin", "Sunstone", "Statue of Sovereignty", 
+                          "Mushgrove Swamp", "Snowcap", "Vertigo", "Keepers Altar", "The Arch", "Desolate Deep"}
+    
+    IslandTeleports:AddDropdown("Select Island", IslandOptions, "Moosewood", function(value)
+        Internal.SelectedIsland = value
+    end)
+    
+    IslandTeleports:AddButton("Teleport to Island", function()
+        if Internal.SelectedIsland == "Moosewood" then
+            LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(382.893, 134.501, 242.632)
+        elseif Internal.SelectedIsland == "Roslit Bay" then
+            LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(game:GetService("Workspace").world.spawns.TpSpots.roslit.Position)
+        elseif Internal.SelectedIsland == "Terrapin" then
+            LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(-146.693, 144.931, 1903.16)
+        elseif Internal.SelectedIsland == "Sunstone" then
+            LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(game:GetService("Workspace").world.spawns.TpSpots.sunstone.Position)
+        elseif Internal.SelectedIsland == "Statue of Sovereignty" then
+            LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(game:GetService("Workspace").world.spawns.TpSpots.statue.Position)
+        elseif Internal.SelectedIsland == "Mushgrove Swamp" then
+            LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(game:GetService("Workspace").world.spawns.TpSpots.mushgrove.Position)
+        elseif Internal.SelectedIsland == "Snowcap" then
+            LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(game:GetService("Workspace").world.spawns.TpSpots.snowcap.Position)
+        elseif Internal.SelectedIsland == "Vertigo" then
+            LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(game:GetService("Workspace").world.spawns.TpSpots.vertigo.Position)
+        elseif Internal.SelectedIsland == "Keepers Altar" then
+            LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(1317.79, -805.292, -111.615)
+        elseif Internal.SelectedIsland == "The Arch" then
+            LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(game:GetService("Workspace").world.spawns.TpSpots.arch.Position)
+        elseif Internal.SelectedIsland == "Desolate Deep" then
+            LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(-1525.85986328125, -234.70187377929688, -2856.092041015625)
+        end
+        Notification:Notify("info", "Teleported", "Successfully teleported to " .. Internal.SelectedIsland, 3)
+    end)
+    
+    -- Add World Event Teleport Dropdown
+    local WorldEventOptions = {"Traveler Merchant", "Strange Whirlpool"}
+    
+    EventTeleports:AddDropdown("Select World Event", WorldEventOptions, "Traveler Merchant", function(value)
+        Internal.SelectedWorldEvent = value
+    end)
+    
+    EventTeleports:AddButton("Teleport to World Event", function()
+        if Internal.SelectedWorldEvent == "Traveler Merchant" then
+            LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(game.Workspace.active["Merchant Boat"].Boat["Merchant Boat"].r.HandlesR.Position)
+        elseif Internal.SelectedWorldEvent == "Strange Whirlpool" then
+            local offset = Vector3.new(0, 125, 0)
+            LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(game.Workspace.zones.fishing.Isonade.Position + offset)
+        end
+        Notification:Notify("info", "Teleported", "Successfully teleported to " .. Internal.SelectedWorldEvent, 3)
+    end)
+    
+    -- Add Special Teleport Button
+    SpecialTeleports:AddButton("Teleport to Trident", function()
+        LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(-1483.99304, -225.975464, -2201.59741)
+        Notification:Notify("info", "Teleported", "Successfully teleported to the Trident", 3)
+    end)
 
     Actions:AddButton("Open/Close Boat UI", function() 
         FischUser.OpenBoatUI()
