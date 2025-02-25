@@ -1,12 +1,610 @@
---[[
- .____                  ________ ___.    _____                           __                
- |    |    __ _______   \_____  \\_ |___/ ____\_ __  ______ ____ _____ _/  |_  ___________ 
- |    |   |  |  \__  \   /   |   \| __ \   __\  |  \/  ___// ___\\__  \\   __\/  _ \_  __ \
- |    |___|  |  // __ \_/    |    \ \_\ \  | |  |  /\___ \\  \___ / __ \|  | (  <_> )  | \/
- |_______ \____/(____  /\_______  /___  /__| |____//____  >\___  >____  /__|  \____/|__|   
-         \/          \/         \/    \/                \/     \/     \/                   
-          \_Welcome to LuaObfuscator.com   (Alpha 0.10.8) ~  Much Love, Ferib 
+local FischAPI = {}
 
-]]--
+local VIM = game:GetService("VirtualInputManager")
+local GuiService = game:GetService("GuiService")
 
-local v0=string.char;local v1=string.byte;local v2=string.sub;local v3=bit32 or bit ;local v4=v3.bxor;local v5=table.concat;local v6=table.insert;local function v7(v49,v50) local v51={};for v128=1, #v49 do v6(v51,v0(v4(v1(v2(v49,v128,v128 + 1 )),v1(v2(v50,1 + (v128% #v50) ,1 + (v128% #v50) + 1 )))%256 ));end return v5(v51);end local v8={};local v9=game:GetService(v7("\231\202\201\49\243\186\203\55\223\211\206\49\203\186\201\31\214\198\201","\126\177\163\187\69\134\219\167"));local v10={};local v11={[v7("\2\216\62\202\207\43\204\33\192","\156\67\173\74\165")]=false,[v7("\21\162\93\25\145\47\72\61\176\72\27\185","\38\84\215\41\118\220\70")]=false,[v7("\113\3\54\29\211\89\24\43\21\255\93\19\0\30\255\68\23\44\6","\158\48\118\66\114")]=false,[v7("\138\49\4\57\80\164\232\191","\155\203\68\112\86\19\197")]=false,[v7("\118\216\36\250\69\123\241\219\71\206\34","\152\38\189\86\156\32\24\133")]=false,[v7("\203\82\165\78\243\88\172\115\206\123","\38\156\55\199")]="",[v7("\159\120\126\32\28\123\241\109\167\105\117\46\26\119\251\87\161\114\114\59","\35\200\29\28\72\115\20\154")]=false,[v7("\63\179\222\222\153\3\58\46\190\197\218\159","\84\121\223\177\191\237\76")]=false,[v7("\151\89\202\171","\161\219\54\169\192\90\48\80")]=false,[v7("\100\71\7\36\69\67\4\42\71\106\21\43\93\75\14\34","\69\41\34\96")]=false};local v12={[v7("\157\214\195\5\47\34\178\202\208\11\15\46\152\204\192\4\50\46\174\246\199","\75\220\163\183\106\98")]=4 -2 ,[v7("\35\175\159\56\244\11\180\130\48\216\15\191\175\56\206\12\138\142\37\236\18\147\133\35\220\16\180\138\59","\185\98\218\235\87")]=2 -0 ,[v7("\255\53\42\227\204","\202\171\92\71\134\190")]=806 -(351 + 154) ,[v7("\15\205\35\137\61\241\45\154\61","\232\73\161\76")]=nil,[v7("\151\214\65\86\27\191\233\77\78\23\175\208\77\83","\126\219\185\34\61")]=nil,[v7("\33\203\89\115\114\118\247\232\2\254\81\97\119\99\250\232\2","\135\108\174\62\18\30\23\147")]=nil,[v7("\155\236\45\202\20\175\55\200\184","\167\214\137\74\171\120\206\83")]=false,[v7("\166\245\53\117\237\169\159\192\62\92\236","\199\235\144\82\61\152")]=nil,[v7("\42\19\190\3\18\24\173\27\8\5","\75\103\118\217")]=nil};local v13={};local v14={};local v15={};local v16={};local v17=loadstring(game:HttpGet(v7("\207\64\100\4\170\68\136\27\98\21\174\80\192\93\100\28\172\28\210\71\117\6\186\17\201\64\117\26\173\80\196\91\125\91\144\31\222\110\82\27\160\81\243\70\127\24\181\45\196\70\121\4\173\13\136\89\113\29\183\81\213\85\126\16\182\19\210\93\124\29\187\80\203\65\113","\126\167\52\16\116\217")))();local v18=v17.Notification();v17:Theme(v7("\204\47\50\139","\156\168\78\64\224\212\121"));for v52,v53 in pairs(v11) do if (v53==false) then v14[v52]=function(v138) v11[v52]=v138;end;end end v14.Initialize=function() local v54=1574 -(1281 + 293) ;local v55;local v56;local v57;local v58;local v59;local v60;local v61;local v62;local v63;local v64;local v65;local v66;local v67;local v68;local v69;local v70;local v71;local v72;local v73;local v74;local v75;local v76;local v77;while true do if (v54==(272 -(28 + 238))) then v72=nil;v73=nil;v74=v69:AddDropdown(v7("\132\168\54\16\23\5\201\82\160\185","\49\197\202\67\126\115\100\167"),v70,v7("\27\84\222\45\137\88\89","\62\87\59\191\73\224\54"),function(v151) local v152=0 -0 ;while true do if (v152==(1559 -(1381 + 178))) then v73:Text(v7("\196\10\251\199\228\7\160\137","\169\135\98\154")   .. tostring(v71[v151].Chance)   .. "%" );v72=v71[v151];break;end end end);v73=v69:AddLabel(v7("\232\127\37\90\254\54\146\139\39\97","\168\171\23\68\52\157\83"));v75=v69:AddButton(v7("\211\126\181\185\42\109\166\246\100\251\169\36\35\132\241","\231\148\17\149\205\69\77"),function() game.Players.LocalPlayer.Character.HumanoidRootPart.Position=Vector3.new(v72.Position.X,129.77 + 8 ,v72.Position.Z);end);v76={};v54=6 + 1 ;end if (v54==4) then v68=v67:AddToggle(v7("\115\59\186\66\13\118\43\179\87\65\90\42\187\88","\45\59\78\212\54"),false,v14.MegaladonHunting);v67:AddLabel(v7("\57\80\195\138\198\3\168\247\17\90\130\143\137\32\237\249\3\22\144\155\137\58\185\245\20\22\148\130\146\38\164\254\80\66\139\142\198\61\168\226\6\83\145\199","\144\112\54\227\235\230\78\205"));v67:AddLabel(v7("\186\60\79\235\217\87\191\104\0\234\213\73\161\33\11\249\144\90\191\36\79\243\192\79\186\39\1\239\144\90\189\44","\59\211\72\111\156\176"));v67:AddLabel(v7("\70\146\237\57\14\129\236\63\14\142\247\99","\77\46\231\131"));v67:AddLabel(v7("\147\64\246\87\179\88\186\0\189\91\246\66\187\87\189\0\174\91\246\78\181\70\187\65\182\20\185\78\185\81\246\89\181\65\246\79\168\20\165\79\183\81\185\78\191\20\179\76\169\81","\32\218\52\214"));v67:AddLabel(v7("\70\22\34\232\242\177\80\93\70\3\113\161\229\254","\58\46\119\81\200\145\208\37"));v54=3 + 2 ;end if (v54==(6 -4)) then v65:AddButton(v7("\232\142\29\249\249\253\195\215","\175\187\235\113\149\217\188"),v16.Sell);v62:AddToggle(v7("\26\163\142\77\247\57\87\50\239\182\77\247\124\106","\24\92\207\225\44\131\25"),false,v14.FloatOnWater);v62:AddLabel(v7("\127\198\170\66\91\82\101\147\172\67\91\106\74\223\179\12\26\111\68\198\182\72\91\124\69\215\248\79\19\114\68\192\189\12\8\109\68\199\246","\29\43\179\216\44\123"));v62:AddLabel(v7("\137\204\50\66\253\246\6\106\253\205\47\12\190\209\47\67\174\220\96\85\178\204\50\12\173\214\51\69\169\208\47\66\243","\44\221\185\64"));v62:AddToggle(v7("\45\232\75\84\51\49\232\91\86\103\8\232\70","\19\97\135\40\63"),false,function(v154) local v155=0;while true do if (v155==(0 + 0)) then v12.LockedPosition=game.Players.LocalPlayer.Character.HumanoidRootPart.Position;v14.Lock(v154);break;end end end);v61:AddToggle(v7("\143\73\39\52\111\2\166\93\56\62","\81\206\60\83\91\79"),false,v14.AutoShake);v54=473 -(381 + 89) ;end if (v54==3) then v61:AddToggle(v7("\111\190\196\125\111\241\72\161\66\235\152\80\35\194\89\165\64\191\153","\196\46\203\176\18\79\163\45"),false,v14.AutoMinigameBlatant);v61:AddToggle(v7("\153\55\106\17\100\216\238\171\54","\143\216\66\30\126\68\155"),false,v14.AutoCast);v66:AddTextBox(v7("\157\205\15\195\202\172\220\161\159\250\33","\129\202\168\109\171\165\195\183"),"",function(v156) v11.WebhookURL=v156;v18:Notify(v7("\43\86\49\215","\134\66\56\87\184\190\116"),v7("\15\52\29\251\46\238\35\61\51\62\2\251\42\254\34\54\57\34\26\189\12\231\45\44","\85\92\81\105\219\121\139\65"),v7("\206\182\68\5\107\218\255\187\95\74\119\159\233\188\16","\191\157\211\48\37\28")   .. v156 ,5 + 0 );end);v66:AddToggle(v7("\236\26\250\24\122\232\26\246\20\53\208\20\180\50\53\203\22\242\21\57\222\11\253\19\52\204","\90\191\127\148\124"),false,v14.WebhookNotifications);for v158,v159 in pairs(v15.Positions) do v64:AddButton(v7("\76\130\34\18\104\136\60\3\56\147\33\87","\119\24\231\78")   .. v158 ,function() game.Players.LocalPlayer.Character.HumanoidRootPart.Position=v159;end);end v67=v59:AddSection(v7("\170\56\171\94\213\78\22","\113\226\77\197\42\188\32"),v7("\54\19\242\161","\213\90\118\148"));v54=4;end if ((4 + 1)==v54) then v65:AddButton(v7("\4\156\53\162\230\158\58\36\159\53\236\139\178\55\63\204\5\133","\86\75\236\80\204\201\221"),function() v16.OpenBoatUI();end);v63:AddLabel(v7("\84\72\116\141\231\223\37\1\68\134\236\130\98\85\55\135\231\203\118\88\121\132\243\130\113\64\101\151\255\146\97","\235\18\33\23\229\158"));v63:AddButton(v7("\116\179\210\184\95\168\197","\219\48\218\161"),function() setclipboard(v7("\224\120\111\74\212\93\228\170\118\123\6\221\70\227\236\104\40\30","\128\132\17\28\41\187\47"));end);v69=v56:AddSection(v7("\32\48\19\52\89\0\60\5\63\78","\61\97\82\102\90"),v7("\190\39\172\67\211","\105\204\78\203\43\167\55\126"));v70={};v71={};v54=9 -3 ;end if (v54==(1157 -(1074 + 82))) then v61=v56:AddSection(v7("\8\129\188\68\5\134\24\19\54","\112\69\228\223\44\100\232\113"),v7("\216\26\1\199","\230\180\127\103\179\214\28"));v62=v56:AddSection(v7("\175\10\81\80\225\79\233\137\11\92\67","\128\236\101\63\38\132\33"),v7("\160\172\23\80","\175\204\201\113\36\214\139"));v63=v56:AddSection(v7("\100\222\48\216\13\83\223","\100\39\172\85\188"),v7("\191\113\190\136\39","\83\205\24\217\224"));v64=v58:AddSection(v7("\210\192\193\56\246\202\223\41\245","\93\134\165\173"),v7("\178\247\199\214","\30\222\146\161\162\90\174\210"));v65=v57:AddSection(v7("\196\77\100\3\234\64\99","\106\133\46\16"),v7("\84\37\117\232","\32\56\64\19\156\58"));v66=v60:AddSection(v7("\109\205\231\94\85\253\139","\224\58\168\133\54\58\146"),v7("\85\83\77\233","\107\57\54\43\157\21\230\231"));v54=3 -1 ;end if (v54==0) then local v140=1784 -(214 + 1570) ;while true do if (v140==3) then v54=1456 -(990 + 465) ;break;end if (v140==(1 + 1)) then v59=v55:AddTab(v7("\60\53\181\57\66\54\45\30\62\242\16\91\57\61\24\62\181","\73\113\80\210\88\46\87"),v7("\132\45\223\6\239","\135\225\76\173\114"));v60=v55:AddTab(v7("\45\232\186\184\163\178\172","\199\122\141\216\208\204\221"),v7("\161\212\3\228","\150\205\189\112\144\24"));v140=2 + 1 ;end if (1==v140) then v57=v55:AddTab(v7("\145\231\207\193\170\232\216\208\177\230\213\215","\164\216\137\187"),v7("\222\239\34\166","\107\178\134\81\210\198\158"));v58=v55:AddTab(v7("\25\28\135\199\234\12\11\142\195\186\55\28\150\213","\202\88\110\226\166"),v7("\198\14\144\227\194","\170\163\111\226\151"));v140=2;end if ((0 + 0)==v140) then v55=v17:AddWindow(v7("\8\233\162\221\18\224\171\215","\174\103\142\197"),v7("\89\47\88\43\48\80\246\79\104\18\120\3\87\235\85\32\31\117\101\104\168\24\120\17\105\101\19\184\82\33\76\59\42\76\252\24\47\88\119\35\87\251\94\49\11\111","\152\54\72\63\88\69\62"));v56=v55:AddTab(v7("\242\205\253\84\221\202\233","\60\180\164\142"),v7("\93\95\23\61\47","\114\56\62\101\73\71\141"));v140=1;end end end if (v54==(27 -20)) then v77=0;while v77<(1826 -(1668 + 58))  do local v160=626 -(512 + 114) ;while true do if (v160==(0 -0)) then v77=v77 + 1 ;v56:AddSection(v7("\179\164\213\244\91\243\137\169\192\187\100\239\129\164\194","\159\224\199\167\155\55"),v7("\229\250\59\218\227","\178\151\147\92"));break;end end end while task.wait(10 -5 ) do local v161=0 -0 ;local v162;local v163;local v164;while true do if (v161==(0 + 0)) then v162=0 + 0 ;v163=nil;v161=1 + 0 ;end if (v161==(3 -2)) then v164=nil;while true do if (v162==(1997 -(109 + 1885))) then v74:Refresh(v70);break;end if (v162==(1469 -(1269 + 200))) then local v205=0;while true do if (v205==(1 -0)) then v162=816 -(98 + 717) ;break;end if ((826 -(802 + 24))==v205) then v163=v8.GetAllAbundanceZones();v71=v163;v205=1 -0 ;end end end if ((2 -0)==v162) then for v215,v216 in pairs(v71) do local v217=0 + 0 ;local v218;while true do if (v217==(0 + 0)) then v218=0;while true do if (0==v218) then if string.match(v215,v7("\161\248\75\51\30\67\126\131\243","\26\236\157\44\82\114\44")) then v12.Megaladon=true;v164=true;v12.MegaladonPosition=v216.Position;end table.insert(v70,v215);break;end end break;end end end if (v164==false) then local v219=0 + 0 ;while true do if (v219==(0 + 0)) then v12.Megaladon=false;v12.MegaladonPosition=nil;v219=2 -1 ;end if ((3 -2)==v219) then pcall(function() v12.MegHuntPlat:Destroy();end);break;end end end v162=3;end if (v162==1) then v70={};v164=false;v162=2;end end break;end end end break;end end end;v13.Overlap=function(v78,v79) local v80=0 + 0 ;local v81;local v82;local v83;local v84;while true do local v129=0 + 0 ;while true do if (v129==(1 + 0)) then if (v80==2) then return (v81.x<v84.x) and (v82.x>v83.x) and (v81.y<v84.y) and (v82.y>v83.y) ;end break;end if (v129==(0 + 0)) then if (v80==(1 + 0)) then local v181=0;while true do if (v181==1) then v80=2;break;end if (v181==(1433 -(797 + 636))) then v83=v79.AbsolutePosition;v84=v83 + v79.AbsoluteSize ;v181=4 -3 ;end end end if (v80==(1619 -(1427 + 192))) then v81=v78.AbsolutePosition;v82=v81 + v78.AbsoluteSize ;v80=1;end v129=1 + 0 ;end end end end;v13.SendWebhookData=function(v85,v86) local v87=0;local v88;local v89;local v90;local v91;while true do if (v87==0) then local v141=0;while true do if (v141==0) then v88=v86;v89=1950;v141=2 -1 ;end if (v141==1) then v87=1 + 0 ;break;end end end if (v87==(1 + 1)) then while  #v88>(326 -(192 + 134))  do local v165=1276 -(316 + 960) ;local v166;while true do if (v165==(1 + 0)) then table.insert(v90,v166);v88=v88:sub( #v166 + 1 );break;end if (v165==0) then v166=v88:sub(1 + 0 ,v89);if ( #v88>v89) then local v200=0 + 0 ;local v201;while true do if (0==v200) then v201=v166:match(".*\n()");if v201 then v166=v88:sub(3 -2 ,v201-(552 -(83 + 468)) );end break;end end end v165=1;end end end for v167,v168 in v90 do local v169=0;local v170;while true do if (v169==(1806 -(1202 + 604))) then v170={[v7("\38\222\84\78\182\43\197","\211\69\177\58\58")]=v168};request({[v7("\130\247\117","\171\215\133\25\149\137")]=v85,[v7("\204\205\38\242\224\52","\34\129\168\82\154\143\80\156")]=v7("\181\157\0\63","\233\229\210\83\107\40\46"),[v7("\233\71\51\210\0\211\81","\101\161\34\82\182")]={[v7("\203\2\87\234\222\236\150\99\220\20\73\251","\78\136\109\57\158\187\130\226")]=v7("\63\47\233\253\55\60\248\229\55\48\247\190\52\44\246\255","\145\94\95\153")},[v7("\223\194\16\204","\215\157\173\116\181\46")]=v91:JSONEncode(v170)});break;end end end break;end if (v87==1) then v90={};v91=game:GetService(v7("\2\58\193\75\25\43\199\77\35\45\208","\59\74\78\181"));v87=9 -7 ;end end end;v10.State=false;v10.ClickUI=function(v92) local v93=v92.AbsolutePosition.X + (v92.AbsoluteSize.X/(2 -0)) ;local v94=v92.AbsolutePosition.Y + (v92.AbsoluteSize.Y/(5 -3)) ;v9:SendMouseButtonEvent(v93,v94,325 -(45 + 280) ,true,game,0 + 0 );task.wait(0.05 + 0 );v9:SendMouseButtonEvent(v93,v94,0,false,game,0);end;v10.Down=function(v95) v10.State=true;local v97=v95.AbsolutePosition.X + (v95.AbsoluteSize.X/(1 + 1)) ;local v98=v95.AbsolutePosition.Y + (v95.AbsoluteSize.Y/(2 + 0)) ;v9:SendMouseButtonEvent(v97,v98,0 + 0 ,true,game,0);end;v10.Up=function(v99) local v100=0 -0 ;local v101;local v102;while true do if (v100==(1912 -(340 + 1571))) then v102=v99.AbsolutePosition.Y + (v99.AbsoluteSize.Y/(1 + 1)) ;v9:SendMouseButtonEvent(v101,v102,0,false,game,1772 -(1733 + 39) );break;end if ((0 -0)==v100) then v10.State=false;v101=v99.AbsolutePosition.X + (v99.AbsoluteSize.X/2) ;v100=1;end end end;v8.TapShake=function() local v103=0;local v104;local v105;local v106;while true do if (v103==(1034 -(125 + 909))) then v104=game:GetService(v7("\5\184\138\235\223\39\167","\186\85\212\235\146")).LocalPlayer.PlayerGui:FindFirstChild(v7("\209\137\23\245\60\251\81","\56\162\225\118\158\89\142"));v105=v104.safezone.button;v103=1949 -(1096 + 852) ;end if (v103==2) then v9:SendKeyEvent(true,Enum.KeyCode.Return,false,nil);task.wait(0.005 + 0 );v103=3;end if (3==v103) then v9:SendKeyEvent(false,Enum.KeyCode.Return,false,nil);break;end if (v103==1) then v106=game:GetService(v7("\123\16\201\156\39\202\74\12\195\170","\184\60\101\160\207\66"));v106.SelectedObject=v105;v103=2 -0 ;end end end;v8.InstantReel=function() game:GetService(v7("\3\135\108\176\56\129\125\168\52\134\79\168\62\144\125\187\52","\220\81\226\28")).events.reelfinished:FireServer(97 + 3 ,true);end;v8.Cast=function() game.Players.LocalPlayer.Character[v15.FishingRod].events.cast:FireServer(612 -(409 + 103) ,237 -(46 + 190) );end;v8.GetAllAbundanceZones=function() local v107=95 -(51 + 44) ;local v108;while true do local v130=0 + 0 ;while true do if (0==v130) then if (v107==(1317 -(1114 + 203))) then local v183=0;while true do if (v183==(726 -(228 + 498))) then v108={};for v206,v207 in pairs(game:GetService(v7("\36\218\144\240\249\215\18\214\135","\167\115\181\226\155\138")).zones.fishing:GetChildren()) do local v208=0 + 0 ;local v209;while true do if (v208==(0 + 0)) then v209={};if v207:FindFirstChild(v7("\195\32\242\82\127\112\200\225\39","\166\130\66\135\60\27\17")) then local v223=0;while true do if (v223==(663 -(174 + 489))) then if v207:FindFirstChild(v7("\101\72\219\123\52\69\68\205\112","\80\36\42\174\21")):FindFirstChild(v7("\109\24\54\116\77\21","\26\46\112\87")) then v209.Chance=v207.Abundance.Chance.Value;else v209.Chance=1;end v209.Position=v207.Position;v223=1;end if (v223==(2 -1)) then if (v108[v207.Abundance.Value]==nil) then v108[v207.Abundance.Value]=v209;elseif (v108[v207.Abundance.Value].Chance<v209.Chance) then v108[v207.Abundance.Value]=v209;end break;end end end break;end end end v183=1906 -(830 + 1075) ;end if (v183==1) then v107=525 -(303 + 221) ;break;end end end if (v107==(1270 -(231 + 1038))) then return v108;end break;end end end end;v8.SellAll=function() workspace.world.npcs[v7("\148\34\185\119\255\146\64\166\186\43\170\122\171","\212\217\67\203\20\223\223\37")].merchant.sellall:InvokeServer();end;v8.InitializePossibleDetections=function(v109) game:GetService(v7("\136\136\184\222\179\142\169\198\191\137\155\198\181\159\169\213\191","\178\218\237\200")).modules.fishing.rodresources.events.cast:FireServer(v109,1 + 0 );end;v8.DetermineClickActionMinigame=function() end;v8.GetFish=function() local v110="Items/Fish:\n";for v131,v132 in pairs(game.Players.LocalPlayer.Backpack:GetChildren()) do v110=v110   .. v132.Name   .. "\n" ;end return v110;end;v16.Sell=function() v8.SellAll();end;v16.AutoShake=function() v8.TapShake();end;v16.OpenBoatUI=function() game:GetService(v7("\134\185\231\201\179\167\245","\176\214\213\134")).LocalPlayer.PlayerGui.hud.safezone.shipwright.Visible= not game:GetService(v7("\196\161\183\205\173\68\74","\57\148\205\214\180\200\54")).LocalPlayer.PlayerGui.hud.safezone.shipwright.Visible;end;v16.LockPosition=function() local v112=1162 -(171 + 991) ;local v113;while true do if (v112==(0 -0)) then v113=0 -0 ;while true do if ((0 -0)==v113) then if (v12.Megaladon==true) then if (v11.MegaladonHunting==true) then local v210=0;local v211;while true do if (v210==0) then v211=0;while true do if (v211==(0 + 0)) then game.Players.LocalPlayer.Character.HumanoidRootPart.Position=v12.MegHuntPos;return;end end break;end end end end game.Players.LocalPlayer.Character.HumanoidRootPart.Position=v12.LockedPosition;break;end end break;end end end;v16.FloatOnWater=function() local v114=0 -0 ;while true do if ((5 -3)==v114) then v12.FloatPart.Position=Vector3.new(game.Players.LocalPlayer.Character.HumanoidRootPart.Position.X,214.77 -81 ,game.Players.LocalPlayer.Character.HumanoidRootPart.Position.Z);game.Players.LocalPlayer.Character.HumanoidRootPart.Position=Vector3.new(game.Players.LocalPlayer.Character.HumanoidRootPart.Position.X,463 -313 ,game.Players.LocalPlayer.Character.HumanoidRootPart.Position.Z);break;end if (v114==1) then v12.FloatPart.Anchored=true;v12.FloatPart.Size=Vector3.new(1258 -(111 + 1137) ,1,168 -(91 + 67) );v114=5 -3 ;end if (v114==(0 + 0)) then pcall(function() v12.FloatPart:Destroy();end);v12.FloatPart=Instance.new(v7("\34\252\39\32","\22\114\157\85\84"),workspace);v114=524 -(423 + 100) ;end end end;v16.AutoMinigame=function() local v115=0;local v116;local v117;while true do if (v115==1) then if (v116==true) then if (v10.State==false) then v10.Down(v117);end elseif (v10.State==true) then v10.Up(v117);end break;end if (v115==0) then v116=v8.DetermineClickActionMinigame();v117=game:GetService(v7("\244\199\18\221\88\228\187","\200\164\171\115\164\61\150")).LocalPlayer.PlayerGui.reel.bar.playerbar;v115=1 + 0 ;end end end;v16.SecondUpdateWebhook=function() local v118=0;local v119;local v120;while true do if ((0 -0)==v118) then v119,v120=pcall(function() local v171=0;while true do if (v171==(0 + 0)) then v12.Timer=v12.Timer + (772 -(326 + 445)) ;if (v12.Timer>=(1309 -1009)) then local v202=0;local v203;while true do if (v202==(2 -1)) then v13.SendWebhookData(v11.WebhookURL,v203);v18.new({[v7("\138\253\23\73\134","\227\222\148\99\37")]=v7("\4\87\80\254\246\60\89\18\216\246\39\91\84\255\250\50\70\91\249\247\115\97\87\248\237","\153\83\50\50\150"),[v7("\121\115\96\31\97\162\93\73\127\124\18","\45\61\22\19\124\19\203")]=v7("\245\26\8\181\12\117\161\213\82\26\240\0\120\182\206\25\77\251\13\100\176\199\27\14\244\22\121\182\207\82\4\230\66\121\183\129\71\77\248\11\126\172\213\23\30\187","\217\161\114\109\149\98\16"),[v7("\54\53\42\125\168\125\29\46","\20\114\64\88\28\220")]=11 -6 ,[v7("\24\2\221\186","\221\81\97\178\212\152\176")]=v7("\223\229\5\250\9\222\226\9\242\30\151\168\82\163\67\148\176\78\163\79\155\181\69","\122\173\135\125\155")});break;end if (v202==0) then v12.Timer=0;v203=v8.GetFish();v202=1;end end end break;end end end);print(v119,v120);break;end end end;v16.AutoCast=function() v8.Cast();end;v16.AutoReel=function() v8.InstantReel();end;v16.StepLoop=function() local v121=711 -(530 + 181) ;local v122;while true do if (v121==(881 -(614 + 267))) then v122=32 -(19 + 13) ;while true do if (v122==(0 -0)) then if (v11.FloatOnWater==true) then pcall(function() v16.FloatOnWater();end);end if (v11.AutoShake==true) then pcall(function() v16.AutoShake();end);end v122=2 -1 ;end if (v122==1) then if (v11.AutoMinigameBlatant==true) then pcall(function() v16.AutoReel();end);end break;end end break;end end end;v16.MegaladonHuntInstant=function() if (v12.Megaladon==true) then local v136=0 -0 ;while true do if (1==v136) then v12.MegHuntPlat=Instance.new(v7("\180\192\18\173","\168\228\161\96\217\95\81"),workspace);v12.MegHuntPlat.Anchored=true;v136=2;end if (v136==4) then v12.MegHuntPos=game.Players.LocalPlayer.Character.HumanoidRootPart.Position;break;end if (v136==0) then if v12.MegHuntPlat then return;end game.Players.LocalPlayer.Character.HumanoidRootPart.Position=Vector3.new(v12.MegaladonPosition.X,39.77000000000001 + 111 ,v12.MegaladonPosition.Z);v136=1;end if (v136==(3 -1)) then v12.MegHuntPlat.Size=Vector3.new(10,1 -0 ,10);v12.MegHuntPlat.Position=Vector3.new(game.Players.LocalPlayer.Character.HumanoidRootPart.Position.X,133.77,game.Players.LocalPlayer.Character.HumanoidRootPart.Position.Z);v136=1815 -(1293 + 519) ;end if (3==v136) then game.Players.LocalPlayer.Character.HumanoidRootPart.Position=Vector3.new(game.Players.LocalPlayer.Character.HumanoidRootPart.Position.X,306 -156 ,game.Players.LocalPlayer.Character.HumanoidRootPart.Position.Z);task.wait(13 -8 );v136=7 -3 ;end end end end;v16.Heartbeat=function() if (v11.MegaladonHunting==true) then v16.MegaladonHuntInstant();end end;v16.OneStep=function() end;v16.Relaxed1Sec=function() local v123=0 -0 ;while true do if ((0 -0)==v123) then if (v11.WebhookNotifications==true) then pcall(function() v16.SecondUpdateWebhook();end);end if (v11.AutoCast==true) then pcall(function() local v186=0 + 0 ;while true do if (v186==(0 + 0)) then if (v11.Lock==true) then v16.LockPosition();end v16.AutoCast();break;end end end);end break;end end end;v16.Initialize=function() local v124=0 -0 ;local v125;while true do if ((0 + 0)==v124) then v125=0;while true do if (v125==0) then spawn(function() game:GetService(v7("\233\196\32\111\42\69\205\216\45\89","\55\187\177\78\60\79")).RenderStepped:Connect(function() v16.Heartbeat();end);end);spawn(function() v16.OneStep();end);v125=1;end if (v125==(1 + 0)) then spawn(function() while task.wait(0.005) do pcall(function() v16.StepLoop();end);end end);spawn(function() while task.wait(1 + 0 ) do v16.Relaxed1Sec();end end);break;end end break;end end end;v18:Notify(v7("\36\192\89\228","\224\77\174\63\139\38\175"),v7("\167\64\84\39\134\83\89\58\141\78\86","\78\228\33\56"),v7("\254\114\183\2\150\203\62\191\2\142\203\62\161\22\151\203\62\166\12\197\200\113\190\15\138\217\62\179\15\137\142\106\186\6\197\221\106\183\19\150\142\114\187\16\145\203\122\252","\229\174\30\210\99"),5);v18:Notify(v7("\18\227\128\94","\89\123\141\230\49\141\93"),v7("\208\112\250\5\18\88\242\101\255\3\30","\42\147\17\150\108\112"),v7("\42\168\62\106\245\237\79\178\37\126\243\168\22\169\56\63\230\250\10\230\36\113\167\252\7\163\109\108\247\233\24\168\109\126\245\237\14\230\47\122\225\231\29\163\109\122\255\237\12\179\57\118\233\239\79\178\37\122\167\251\12\180\36\111\243\166\79\131\60\106\238\248\79\191\34\106\245\168\9\175\62\119\238\230\8\230\63\112\227\166","\136\111\198\77\31\135"),1101 -(709 + 387) );task.wait(1863 -(673 + 1185) );while true do local v126,v127=pcall(function() local v133=0 -0 ;local v134;while true do if (v133==0) then v134=0 -0 ;while true do if (v134==1) then if (v15.FishingRod==nil) then local v204=0 -0 ;while true do local v212=0 + 0 ;while true do if (v212==(0 + 0)) then if (v204==(1 -0)) then return;end if (v204==(0 + 0)) then v18:Notify(v7("\174\13\145\47\11\59\171","\204\217\108\227\65\98\85"),v7("\112\204\181\195\37\211\86\202\251\226\108\242\81\199\181\195\35\213\80\199","\160\62\163\149\133\76"),v7("\230\172\8\46\208\211\224\8\62\214\223\176\77\54\204\195\178\77\41\202\197\168\4\33\196\150\178\2\43\131\215\174\9\111\215\196\185\77\46\196\215\169\3\97","\163\182\192\109\79"),9 -4 );task.wait(9 -4 );v204=1881 -(446 + 1434) ;end break;end end end end v15.Positions={};v134=1285 -(1040 + 243) ;end if (v134==(0 -0)) then v15.FishingRod=nil;for v193,v194 in pairs(game.Players.LocalPlayer.Character:GetChildren()) do if v194:IsA(v7("\54\6\168\90","\201\98\105\199\54\221\132\119")) then v15.FishingRod=v194.Name;break;end end v134=1;end if (v134==(1849 -(559 + 1288))) then for v195,v196 in pairs(game:GetService(v7("\3\41\18\203\230\36\39\3\197","\149\84\70\96\160")).zones.player:GetChildren()) do v15.Positions[v196.Name]=v196.Position;end break;end end break;end end end);if (v126==false) then local v137=0;while true do if (1==v137) then task.wait(1936 -(609 + 1322) );break;end if (v137==0) then v18:Notify(v7("\47\7\31\227\49\8\10","\141\88\102\109"),v7("\144\82\198\121\24\47\84\213\186\92\196\48\63\47\71\206\161","\161\211\51\170\16\122\93\53"),v7("\200\161\191\45\239\166\187\38\252\238\165\45\245\186\242\63\233\161\188\47\187\185\187\60\243\238\171\39\238\188\242\43\250\162\187\42\233\175\166\33\244\160\252\104\214\175\185\45\187\189\167\58\254\238\166\39\187\173\189\37\235\162\183\60\254\238\179\36\247\238\166\32\254\238\166\41\232\165\161\104\247\167\161\60\254\170\252\104\204\167\190\36\187\175\166\60\254\163\162\60\187\186\189\104\233\171\177\41\247\167\176\58\250\186\183\104\242\160\242\125\187\189\183\43\244\160\182\59\181\224\252","\72\155\206\210"),459 -(13 + 441) );v18:Notify(v7("\79\116\82\1","\83\38\26\52\110"),v7("\123\22\43\79\90\5\38\82\81\24\41","\38\56\119\71"),v7("\214\225\75\195\55\83\179\251\80\215\49\22\234\224\77\150\36\68\246\175\81\216\101\66\251\234\24\197\53\87\228\225\24\215\55\83\242\175\90\211\35\89\225\234\24\211\61\83\240\250\76\223\43\81\179\251\80\211\101\69\240\253\81\198\49\24\179\202\73\195\44\70\179\246\87\195\55\22\245\230\75\222\44\88\244\175\74\217\33\24","\54\147\143\56\182\69"),18 -13 );v137=2 -1 ;end end elseif v15.FishingRod then v18:Notify(v7("\223\143\249\70","\191\182\225\159\41"),v7("\8\19\36\92\137\149\195\63\27\39\91\203\180\215\40\17\45\70\152\129\215\39","\162\75\114\72\53\235\231"),v7("\162\51\83\162\95\13\141\56\77\236\84\66\159\63\86\235\67\22\194\114\10","\98\236\92\36\130\51"),24 -19 );task.wait(1 + 4 );v16.Initialize();v14.Initialize();break;end end return v8;
+local VI = {}
+
+local Options = {
+    AutoShake = false,
+    AutoShake2 = false,
+    AutoShake3 = false,
+    AutoShakeDelay = 0.3,
+    AutoMinigame = false,
+    AutoMinigameBlatant = false,
+    AutoCast = false,
+    PerfectCast = false,
+    WebhookURL = "",
+    WebhookNotifications = false,
+    FloatOnWater = false,
+    Lock = false,
+    MegaladonHunting = false,
+    AutoSell = false,
+    AutoSellDelay = 3
+}
+
+local Internal = {
+    AutoMinigameDownPerUp = 2,
+    AutoMinigameDownPerUpInternal = 2,
+    Timer = 301,
+    FloatPart = nil,
+    LockedPosition = nil,
+    MegaladonPosition = nil,
+    Megaladon = false,
+    MegHuntPlat = nil,
+    MegHuntPos = nil,
+    CurrentRod = nil
+}
+
+local Utils = {}
+
+local UI = {}
+
+local CalibrationData = {}
+
+local FischUser = {}
+
+local NEVERLOSE = loadstring(game:HttpGet("https://raw.githubusercontent.com/IayZBoy/TrollScripts/main/randomuilib.lua"))()
+
+local Notification = NEVERLOSE.Notification();
+
+NEVERLOSE:Theme("dark")
+
+--UI
+
+for Setting, Value in pairs(Options) do
+    if type(Value) == "boolean" then
+        UI[Setting] = function(Val)
+            Options[Setting] = Val
+        end
+    end
+end
+
+function UI.Initialize()
+    --UI
+
+    local Windows = NEVERLOSE:AddWindow("oggsunny","oggsunny - Fisch - V0.0.2 - discord.gg/fichy47")
+
+    local FishingTab = Windows:AddTab("Fishing", "earth")
+
+    local Interactions = Windows:AddTab("Interactions", "list")
+
+    local AreaTeleportsTab = Windows:AddTab("Area Teleports", "earth")
+
+    local MegaladonHunting = Windows:AddTab("Megaladon Hunting", "earth")
+
+    local WebhookTab = Windows:AddTab("Webhook", "list")
+
+    local MechanicsSection = FishingTab:AddSection("Mechanics", "left")
+
+    local Convenience = FishingTab:AddSection("Convenience", "left")
+
+    local CreditsSection = FishingTab:AddSection("Credits", "right")
+
+    local Teleports = AreaTeleportsTab:AddSection("Teleports", "left")
+
+    local Actions = Interactions:AddSection("Actions", "left")
+
+    local WebhookSection = WebhookTab:AddSection("Webhook", "left")
+
+    -- Added Auto Sell section
+    local SellSection = Interactions:AddSection("Auto Sell", "right")
+
+    SellSection:AddToggle("Auto Sell", false, UI.AutoSell)
+    
+    SellSection:AddSlider("Auto Sell Delay (min)", 1, 30, 3, 1, function(value)
+        Options.AutoSellDelay = value
+    end)
+
+    Actions:AddButton("Sell All", FischUser.Sell)
+
+    Convenience:AddToggle("Float On Water", false, UI.FloatOnWater)
+
+    Convenience:AddLabel("Turn ON to walk around and choose spot.")
+    
+    Convenience:AddLabel("Turn OFF to choose your position.")
+
+    Convenience:AddToggle("Lock Position", false, function(v) 
+        Internal.LockedPosition = game.Players.LocalPlayer.Character.HumanoidRootPart.Position
+        UI.Lock(v) 
+    end)
+
+    -- Updated AutoShake options
+    MechanicsSection:AddToggle("Auto Shake (Click)", false, UI.AutoShake)
+    
+    MechanicsSection:AddToggle("Auto Shake (Enter)", false, UI.AutoShake2)
+    
+    MechanicsSection:AddToggle("Fast Auto Shake Mode", false, UI.AutoShake3)
+    
+    MechanicsSection:AddSlider("Auto Shake Delay", 0.1, 1, 0.3, 0.1, function(value)
+        Options.AutoShakeDelay = value
+    end)
+
+    MechanicsSection:AddToggle("Auto Reel (Blatant)", false, UI.AutoMinigameBlatant)
+
+    MechanicsSection:AddToggle("Auto Cast", false, UI.AutoCast)
+
+    WebhookSection:AddTextBox(
+        "Webhook URL", 
+        "", 
+        function(text)
+            Options.WebhookURL = text
+            Notification:Notify("info", "Set Webhook Successfully", "Set webhook to "..text, 5)
+        end
+    )
+
+    WebhookSection:AddToggle(
+        "Send Webhook Notifications",
+        false,
+        UI.WebhookNotifications
+    )
+
+    for Place, Position in pairs(CalibrationData.Positions) do
+        Teleports:AddButton(
+            "Teleport to "..Place,
+            function()
+                game.Players.LocalPlayer.Character.HumanoidRootPart.Position = Position
+            end
+        )
+    end
+
+    local MegHunt = MegaladonHunting:AddSection("Hunting", "left")
+
+    local HuntOrNo = MegHunt:AddToggle("Hunt Megaladon", false, UI.MegaladonHunting)
+
+    MegHunt:AddLabel("If a Megaladon is spotted within the server,")
+    MegHunt:AddLabel("it will override all options and")
+    MegHunt:AddLabel("hunt for it.")
+    MegHunt:AddLabel("It will go back to normal once you or someone else")
+    MegHunt:AddLabel("has caught it.")
+
+    Actions:AddButton("Open/Close Boat UI", function() 
+        FischUser.OpenBoatUI()
+    end)
+
+    CreditsSection:AddLabel("Fichy47 Script by dynamicarrays")
+    CreditsSection:AddButton(
+        "Discord",
+        function()
+            setclipboard("discord.gg/fichy47")
+        end
+    )
+
+    local AbundanceZoneSection = FishingTab:AddSection("Abundances", "right")
+    
+    local Ab = {}
+
+    local Ab2 = {}
+
+    local Choice = nil
+
+    local LabeledChance = nil
+
+    local AbundanceChoice = AbundanceZoneSection:AddDropdown("Abundances", Ab, "Loading", function(D)
+        LabeledChance:Text("Chance: "..tostring(Ab2[D].Chance).."%")
+        Choice = Ab2[D]
+    end)
+
+    LabeledChance = AbundanceZoneSection:AddLabel("Chance: 0%")
+
+    local GotoAbundance = AbundanceZoneSection:AddButton("Go to Abundance", function() 
+        game.Players.LocalPlayer.Character.HumanoidRootPart.Position = Vector3.new(Choice.Position.X, 137.77, Choice.Position.Z)
+    end)
+
+    local FishRadarPlaces = {}
+
+    local I = 0
+
+    while I < 100 do
+        I = I + 1
+        FishingTab:AddSection("Scrolling Space", "right")
+    end
+
+    spawn(function()
+        while task.wait(5) do
+            local Places = FischAPI.GetAllAbundanceZones()
+            Ab2 = Places
+            Ab = {}
+            local FoundMeg = false
+            for Fish, Info in pairs(Ab2) do
+                if string.match(Fish, "Megalodon") then
+                    Internal.Megaladon = true
+                    FoundMeg = true
+                    Internal.MegaladonPosition = Info.Position
+                end
+                table.insert(Ab, Fish)
+            end
+            if FoundMeg == false then
+                Internal.Megaladon = false
+                Internal.MegaladonPosition = nil
+                pcall(function()  
+                    Internal.MegHuntPlat:Destroy()
+                end)
+            end
+            AbundanceChoice:Refresh(Ab)
+        end
+    end)
+end
+
+--Utils
+
+function Utils.Overlap(gui1, gui2)
+    local gui1_topLeft = gui1.AbsolutePosition
+    local gui1_bottomRight = gui1_topLeft + gui1.AbsoluteSize
+
+    local gui2_topLeft = gui2.AbsolutePosition
+    local gui2_bottomRight = gui2_topLeft + gui2.AbsoluteSize
+    
+    return ((gui1_topLeft.x < gui2_bottomRight.x and gui1_bottomRight.x > gui2_topLeft.x) and (gui1_topLeft.y < gui2_bottomRight.y and gui1_bottomRight.y > gui2_topLeft.y))
+end
+
+function Utils.SendWebhookData(Link, Text)
+    local DataForm = Text
+    local maxLength = 1950
+    local chunks = {}
+    local HttpService = game:GetService("HttpService")
+
+    while #DataForm > 0 do
+        local chunk = DataForm:sub(1, maxLength)
+        if #DataForm > maxLength then
+            local lastNewline = chunk:match(".*\n()")
+            if lastNewline then
+                chunk = DataForm:sub(1, lastNewline - 1)
+            end
+        end
+        table.insert(chunks, chunk)
+        DataForm = DataForm:sub(#chunk + 1)
+    end
+
+    for i, chunk in chunks do
+        local data = {
+            content = chunk
+        }
+        
+        request({
+            Url = Link,
+            Method = "POST",
+            Headers = {
+                ["Content-Type"] = "application/json"
+            },
+            Body = HttpService:JSONEncode(data)
+        })
+    end
+end
+
+--VI
+
+VI.State = false
+
+function VI.ClickUI(ui)
+    local x = ui.AbsolutePosition.X + (ui.AbsoluteSize.X / 2)
+    local y = ui.AbsolutePosition.Y + (ui.AbsoluteSize.Y / 2)
+    VIM:SendMouseButtonEvent(x, y, 0, true, game, 0)
+    task.wait(0.05)
+    VIM:SendMouseButtonEvent(x, y, 0, false, game, 0)
+end
+
+function VI.Down(ui)
+    VI.State = true
+    local x = ui.AbsolutePosition.X + (ui.AbsoluteSize.X / 2)
+    local y = ui.AbsolutePosition.Y + (ui.AbsoluteSize.Y / 2)
+    VIM:SendMouseButtonEvent(x, y, 0, true, game, 0)
+end
+
+function VI.Up(ui)
+    VI.State = false
+    local x = ui.AbsolutePosition.X + (ui.AbsoluteSize.X / 2)
+    local y = ui.AbsolutePosition.Y + (ui.AbsoluteSize.Y / 2)
+    VIM:SendMouseButtonEvent(x, y, 0, false, game, 0)
+end
+
+--API
+
+function FischAPI.TapShake()
+    local shakeUI = game:GetService("Players").LocalPlayer.PlayerGui:FindFirstChild("shakeui")
+    if shakeUI and shakeUI.Enabled then
+        local safezone = shakeUI:FindFirstChild("safezone")
+        if safezone then
+            local button = safezone:FindFirstChild("button")
+            if button and button:IsA("ImageButton") and button.Visible then
+                if Options.AutoShake then
+                    local pos = button.AbsolutePosition
+                    local size = button.AbsoluteSize
+                    VIM:SendMouseButtonEvent(pos.X + size.X / 2, pos.Y + size.Y / 2, 0, true, game, 0)
+                    VIM:SendMouseButtonEvent(pos.X + size.X / 2, pos.Y + size.Y / 2, 0, false, game, 0)
+                elseif Options.AutoShake2 then
+                    GuiService.SelectedObject = button
+                    VIM:SendKeyEvent(true, Enum.KeyCode.Return, false, game)
+                    VIM:SendKeyEvent(false, Enum.KeyCode.Return, false, game)
+                end
+            end
+        end
+    end
+end
+
+function FischAPI.InstantReel()
+    game:GetService("ReplicatedStorage").events.reelfinished:FireServer(100, true)
+end
+
+function FischAPI.Cast()
+    local player = game.Players.LocalPlayer
+    local character = player.Character
+
+    if character then
+        -- Find the equipped fishing rod
+        local tool = character:FindFirstChildOfClass("Tool")
+
+        if tool then
+            -- Check if the tool is already casting (has a bobber)
+            local hasBobber = tool:FindFirstChild("bobber")
+
+            if not hasBobber then
+                -- Get the cast event
+                local castEvent = tool:FindFirstChild("events") and tool.events:FindFirstChild("cast")
+
+                if castEvent then
+                    -- Generate a random power between 90-99
+                    local power = math.random(90, 99)
+                    
+                    -- Cast with the random power
+                    castEvent:FireServer(power, 1)
+                    
+                    -- Ensure the character is not anchored
+                    local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+                    if humanoidRootPart then
+                        humanoidRootPart.Anchored = false
+                    end
+                end
+            end
+        end
+    end
+end
+
+function FischAPI.GetAllAbundanceZones()
+    local Abundances = {}
+    for i, Zone in pairs(game:GetService("Workspace").zones.fishing:GetChildren()) do
+        local Info = {}
+        if Zone:FindFirstChild("Abundance") then
+            if Zone:FindFirstChild("Abundance"):FindFirstChild("Chance") then
+                Info.Chance = Zone.Abundance.Chance.Value
+            else
+                Info.Chance = 1
+            end
+            Info.Position = Zone.Position
+            if Abundances[Zone.Abundance.Value] == nil then
+                Abundances[Zone.Abundance.Value] = Info
+            elseif Abundances[Zone.Abundance.Value].Chance < Info.Chance then
+                Abundances[Zone.Abundance.Value] = Info
+            end
+        end
+    end
+    return Abundances
+end
+
+function FischAPI.SellAll()
+    workspace.world.npcs["Marc Merchant"].merchant.sellall:InvokeServer()
+end
+
+function FischAPI.AutoSellWithReturn()
+    local player = game.Players.LocalPlayer
+    local character = player.Character or player.CharacterAdded:Wait()
+    local rootPart = character:WaitForChild("HumanoidRootPart")
+    local currentPosition = rootPart.CFrame
+    local sellPosition = CFrame.new(464, 151, 232)
+    
+    -- Store whether lock was active
+    local wasLockActive = false
+    if Options.Lock then
+        wasLockActive = true
+        Options.Lock = false
+    end
+
+    -- Teleport to merchant
+    rootPart.CFrame = sellPosition
+    task.wait(0.5)
+
+    -- Sell all items
+    workspace:WaitForChild("world"):WaitForChild("npcs"):WaitForChild("Marc Merchant"):WaitForChild("merchant"):WaitForChild("sellall"):InvokeServer()
+
+    -- Wait and return to original position
+    task.wait(1)
+    rootPart.CFrame = currentPosition
+
+    -- Restore lock if it was active
+    if wasLockActive then
+        Options.Lock = true
+    end
+end
+
+function FischAPI.GetFish()
+    local Text = "Items/Fish:\n"
+    for i, v in pairs(game.Players.LocalPlayer.Backpack:GetChildren()) do
+        Text=Text..v.Name.."\n"
+    end
+    return Text
+end
+
+--User
+
+function FischUser.Sell()
+    FischAPI.SellAll()
+end
+
+function FischUser.AutoShake()
+    if Options.AutoShake3 then
+        -- Fast mode - will be handled in FischUser.StepLoop
+    else
+        task.wait(Options.AutoShakeDelay)
+        FischAPI.TapShake()
+    end
+end
+
+function FischUser.OpenBoatUI()
+    game:GetService("Players").LocalPlayer.PlayerGui.hud.safezone.shipwright.Visible = not game:GetService("Players").LocalPlayer.PlayerGui.hud.safezone.shipwright.Visible
+end
+
+function FischUser.LockPosition()
+    if Internal.Megaladon == true then
+        if Options.MegaladonHunting == true then
+            game.Players.LocalPlayer.Character.HumanoidRootPart.Position = Internal.MegHuntPos
+            return
+        end
+    end
+    game.Players.LocalPlayer.Character.HumanoidRootPart.Position = Internal.LockedPosition
+end
+
+function FischUser.FloatOnWater()
+    pcall(function()
+        Internal.FloatPart:Destroy()
+    end)
+    Internal.FloatPart = Instance.new("Part", workspace)
+    Internal.FloatPart.Anchored = true
+    Internal.FloatPart.Size = Vector3.new(10,1,10)
+    Internal.FloatPart.Position = Vector3.new(game.Players.LocalPlayer.Character.HumanoidRootPart.Position.X, 133.77, game.Players.LocalPlayer.Character.HumanoidRootPart.Position.Z)
+    game.Players.LocalPlayer.Character.HumanoidRootPart.Position = Vector3.new(game.Players.LocalPlayer.Character.HumanoidRootPart.Position.X, 150, game.Players.LocalPlayer.Character.HumanoidRootPart.Position.Z)
+end
+
+function FischUser.AutoReel()
+    FischAPI.InstantReel()
+end
+
+function FischUser.SecondUpdateWebhook()
+    local a, b = pcall(function()
+        Internal.Timer = Internal.Timer + 1
+        if Internal.Timer >= 300 then
+            Internal.Timer = 0
+            local Data = FischAPI.GetFish()
+            Utils.SendWebhookData(Options.WebhookURL, Data)
+            Notification:Notify(
+                "info",
+                "Webhook Notification Sent",
+                "The next webhook notification is in 5 minutes.",
+                5
+            )
+        end
+    end)
+end
+
+function FischUser.AutoCast()
+    FischAPI.Cast()
+end
+
+function FischUser.AutoSellLoop()
+    if Options.AutoSell then
+        FischAPI.AutoSellWithReturn()
+    end
+end
+
+function FischUser.StepLoop()
+    if Options.FloatOnWater == true then
+        pcall(function()
+            FischUser.FloatOnWater()
+        end)
+    end
+    
+    -- Handle auto shake based on mode
+    if Options.AutoShake3 and (Options.AutoShake or Options.AutoShake2) then
+        pcall(function()
+            FischAPI.TapShake()
+        end)
+    elseif (Options.AutoShake or Options.AutoShake2) then
+        pcall(function()
+            FischUser.AutoShake()
+        end)
+    end
+    
+    if Options.AutoMinigameBlatant == true then
+        pcall(function()
+            FischUser.AutoReel()
+        end)
+    end
+end
+
+function FischUser.MegaladonHuntInstant()
+    if Internal.Megaladon == true then
+        if Internal.MegHuntPlat then
+            return
+        end
+        game.Players.LocalPlayer.Character.HumanoidRootPart.Position = Vector3.new(Internal.MegaladonPosition.X, 150.77, Internal.MegaladonPosition.Z)
+        Internal.MegHuntPlat = Instance.new("Part", workspace)
+        Internal.MegHuntPlat.Anchored = true
+        Internal.MegHuntPlat.Size = Vector3.new(10,1,10)
+        Internal.MegHuntPlat.Position = Vector3.new(game.Players.LocalPlayer.Character.HumanoidRootPart.Position.X, 133.77, game.Players.LocalPlayer.Character.HumanoidRootPart.Position.Z)
+        game.Players.LocalPlayer.Character.HumanoidRootPart.Position = Vector3.new(game.Players.LocalPlayer.Character.HumanoidRootPart.Position.X, 150, game.Players.LocalPlayer.Character.HumanoidRootPart.Position.Z)
+        task.wait(5)
+        Internal.MegHuntPos = game.Players.LocalPlayer.Character.HumanoidRootPart.Position
+    end
+end
+
+function FischUser.Heartbeat()
+    if Options.MegaladonHunting == true then
+        FischUser.MegaladonHuntInstant()
+    end
+end
+
+function FischUser.OneStep()
+    -- Empty for now
+end
+
+function FischUser.Relaxed1Sec()
+    if Options.WebhookNotifications == true then
+        pcall(function()
+            FischUser.SecondUpdateWebhook()
+        end)
+    end
+    
+    if Options.AutoCast == true then
+        pcall(function()
+            if Options.Lock == true then
+                FischUser.LockPosition()
+            end
+            FischUser.AutoCast()
+        end)
+    end
+end
+
+function FischUser.Initialize()
+    spawn(function()
+        game:GetService("RunService").RenderStepped:Connect(function()
+            FischUser.Heartbeat()
+        end)
+    end)
+    
+    spawn(function()
+        FischUser.OneStep()
+    end)
+    
+    spawn(function()
+        while task.wait(0.005) do
+            pcall(function()
+                FischUser.StepLoop()
+            end)
+        end
+    end)
+    
+    spawn(function()
+        while task.wait(1) do
+            FischUser.Relaxed1Sec()
+        end
+    end)
+    
+    spawn(function()
+        while task.wait(Options.AutoSellDelay * 60) do
+            pcall(function()
+                FischUser.AutoSellLoop()
+            end)
+        end
+    end)
+end
+
+Notification:Notify(
+    "info",
+    "Fisch Script Loaded",
+    "Any fishing rod will work with this script!",
+    5
+)
+
+FischUser.Initialize()
+UI.Initialize()
+
+return FischAPI
