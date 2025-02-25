@@ -12,11 +12,8 @@ local Options = {
     AutoMinigameBlatant = false,
     AutoCast = false,
     PerfectCast = false,
-    WebhookURL = "",
-    WebhookNotifications = false,
     FloatOnWater = false,
     Lock = false,
-    MegaladonHunting = false,
     AutoSell = false,
     AutoSellDelay = 3
 }
@@ -27,10 +24,6 @@ local Internal = {
     Timer = 301,
     FloatPart = nil,
     LockedPosition = nil,
-    MegaladonPosition = nil,
-    Megaladon = false,
-    MegHuntPlat = nil,
-    MegHuntPos = nil,
     CurrentRod = nil
 }
 
@@ -69,10 +62,6 @@ function UI.Initialize()
 
     local AreaTeleportsTab = Windows:AddTab("Area Teleports", "earth")
 
-    local MegaladonHunting = Windows:AddTab("Megaladon Hunting", "earth")
-
-    local WebhookTab = Windows:AddTab("Webhook", "list")
-
     local MechanicsSection = FishingTab:AddSection("Mechanics", "left")
 
     local Convenience = FishingTab:AddSection("Convenience", "left")
@@ -82,8 +71,6 @@ function UI.Initialize()
     local Teleports = AreaTeleportsTab:AddSection("Teleports", "left")
 
     local Actions = Interactions:AddSection("Actions", "left")
-
-    local WebhookSection = WebhookTab:AddSection("Webhook", "left")
 
     -- Added Auto Sell section
     local SellSection = Interactions:AddSection("Auto Sell", "right")
@@ -118,21 +105,6 @@ function UI.Initialize()
 
     MechanicsSection:AddToggle("Auto Cast", false, UI.AutoCast)
 
-    WebhookSection:AddTextBox(
-        "Webhook URL", 
-        "", 
-        function(text)
-            Options.WebhookURL = text
-            Notification:Notify("info", "Set Webhook Successfully", "Set webhook to "..text, 5)
-        end
-    )
-
-    WebhookSection:AddToggle(
-        "Send Webhook Notifications",
-        false,
-        UI.WebhookNotifications
-    )
-
     for Place, Position in pairs(CalibrationData.Positions) do
         Teleports:AddButton(
             "Teleport to "..Place,
@@ -141,16 +113,6 @@ function UI.Initialize()
             end
         )
     end
-
-    local MegHunt = MegaladonHunting:AddSection("Hunting", "left")
-
-    local HuntOrNo = MegHunt:AddToggle("Hunt Megaladon", false, UI.MegaladonHunting)
-
-    MegHunt:AddLabel("If a Megaladon is spotted within the server,")
-    MegHunt:AddLabel("it will override all options and")
-    MegHunt:AddLabel("hunt for it.")
-    MegHunt:AddLabel("It will go back to normal once you or someone else")
-    MegHunt:AddLabel("has caught it.")
 
     Actions:AddButton("Open/Close Boat UI", function() 
         FischUser.OpenBoatUI()
@@ -199,21 +161,8 @@ function UI.Initialize()
             local Places = FischAPI.GetAllAbundanceZones()
             Ab2 = Places
             Ab = {}
-            local FoundMeg = false
             for Fish, Info in pairs(Ab2) do
-                if string.match(Fish, "Megalodon") then
-                    Internal.Megaladon = true
-                    FoundMeg = true
-                    Internal.MegaladonPosition = Info.Position
-                end
                 table.insert(Ab, Fish)
-            end
-            if FoundMeg == false then
-                Internal.Megaladon = false
-                Internal.MegaladonPosition = nil
-                pcall(function()  
-                    Internal.MegHuntPlat:Destroy()
-                end)
             end
             AbundanceChoice:Refresh(Ab)
         end
@@ -230,40 +179,6 @@ function Utils.Overlap(gui1, gui2)
     local gui2_bottomRight = gui2_topLeft + gui2.AbsoluteSize
     
     return ((gui1_topLeft.x < gui2_bottomRight.x and gui1_bottomRight.x > gui2_topLeft.x) and (gui1_topLeft.y < gui2_bottomRight.y and gui1_bottomRight.y > gui2_topLeft.y))
-end
-
-function Utils.SendWebhookData(Link, Text)
-    local DataForm = Text
-    local maxLength = 1950
-    local chunks = {}
-    local HttpService = game:GetService("HttpService")
-
-    while #DataForm > 0 do
-        local chunk = DataForm:sub(1, maxLength)
-        if #DataForm > maxLength then
-            local lastNewline = chunk:match(".*\n()")
-            if lastNewline then
-                chunk = DataForm:sub(1, lastNewline - 1)
-            end
-        end
-        table.insert(chunks, chunk)
-        DataForm = DataForm:sub(#chunk + 1)
-    end
-
-    for i, chunk in chunks do
-        local data = {
-            content = chunk
-        }
-        
-        request({
-            Url = Link,
-            Method = "POST",
-            Headers = {
-                ["Content-Type"] = "application/json"
-            },
-            Body = HttpService:JSONEncode(data)
-        })
-    end
 end
 
 --VI
@@ -429,12 +344,6 @@ function FischUser.OpenBoatUI()
 end
 
 function FischUser.LockPosition()
-    if Internal.Megaladon == true then
-        if Options.MegaladonHunting == true then
-            game.Players.LocalPlayer.Character.HumanoidRootPart.Position = Internal.MegHuntPos
-            return
-        end
-    end
     game.Players.LocalPlayer.Character.HumanoidRootPart.Position = Internal.LockedPosition
 end
 
@@ -451,23 +360,6 @@ end
 
 function FischUser.AutoReel()
     FischAPI.InstantReel()
-end
-
-function FischUser.SecondUpdateWebhook()
-    local a, b = pcall(function()
-        Internal.Timer = Internal.Timer + 1
-        if Internal.Timer >= 300 then
-            Internal.Timer = 0
-            local Data = FischAPI.GetFish()
-            Utils.SendWebhookData(Options.WebhookURL, Data)
-            Notification:Notify(
-                "info",
-                "Webhook Notification Sent",
-                "The next webhook notification is in 5 minutes.",
-                5
-            )
-        end
-    end)
 end
 
 function FischUser.AutoCast()
@@ -501,26 +393,8 @@ function FischUser.StepLoop()
     end
 end
 
-function FischUser.MegaladonHuntInstant()
-    if Internal.Megaladon == true then
-        if Internal.MegHuntPlat then
-            return
-        end
-        game.Players.LocalPlayer.Character.HumanoidRootPart.Position = Vector3.new(Internal.MegaladonPosition.X, 150.77, Internal.MegaladonPosition.Z)
-        Internal.MegHuntPlat = Instance.new("Part", workspace)
-        Internal.MegHuntPlat.Anchored = true
-        Internal.MegHuntPlat.Size = Vector3.new(10,1,10)
-        Internal.MegHuntPlat.Position = Vector3.new(game.Players.LocalPlayer.Character.HumanoidRootPart.Position.X, 133.77, game.Players.LocalPlayer.Character.HumanoidRootPart.Position.Z)
-        game.Players.LocalPlayer.Character.HumanoidRootPart.Position = Vector3.new(game.Players.LocalPlayer.Character.HumanoidRootPart.Position.X, 150, game.Players.LocalPlayer.Character.HumanoidRootPart.Position.Z)
-        task.wait(5)
-        Internal.MegHuntPos = game.Players.LocalPlayer.Character.HumanoidRootPart.Position
-    end
-end
-
 function FischUser.Heartbeat()
-    if Options.MegaladonHunting == true then
-        FischUser.MegaladonHuntInstant()
-    end
+    -- Empty now that megaladon hunting is removed
 end
 
 function FischUser.OneStep()
@@ -528,12 +402,6 @@ function FischUser.OneStep()
 end
 
 function FischUser.Relaxed1Sec()
-    if Options.WebhookNotifications == true then
-        pcall(function()
-            FischUser.SecondUpdateWebhook()
-        end)
-    end
-    
     if Options.AutoCast == true then
         pcall(function()
             if Options.Lock == true then
