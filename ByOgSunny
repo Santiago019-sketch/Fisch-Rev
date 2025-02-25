@@ -1,18 +1,18 @@
--- Improved Fisch Script with Orion UI Library
--- More interactive and error-free
-
-local OrionLib = loadstring(game:HttpGet(('https://raw.githubusercontent.com/shlexware/Orion/main/source')))()
-local Window = OrionLib:MakeWindow({Name = "Fisch Hub", HiderKeybind = Enum.KeyCode.RightControl, SaveConfig = true, ConfigFolder = "FischConfig"})
+local FischAPI = {}
 
 local VIM = game:GetService("VirtualInputManager")
 local GuiService = game:GetService("GuiService")
 local LocalPlayer = game.Players.LocalPlayer
 
+local VI = {}
+
 local Options = {
-    AutoShake = false,
+    AutoShake2 = false, -- Only Enter shake mode
     AutoShakeDelay = 0.3,
     AutoMinigame = false,
+    AutoMinigameBlatant = false,
     AutoCast = false,
+    PerfectCast = false,
     FloatOnWater = false,
     Lock = false,
     AutoSell = false,
@@ -20,49 +20,233 @@ local Options = {
 }
 
 local Internal = {
+    AutoMinigameDownPerUp = 2,
+    AutoMinigameDownPerUpInternal = 2,
+    Timer = 301,
     FloatPart = nil,
     LockedPosition = nil,
+    CurrentRod = nil,
     SelectedIsland = "Moosewood",
     SelectedWorldEvent = "Traveler Merchant"
 }
 
-local AbundanceData = {}
+local Utils = {}
 
--- Utility Functions
-local Utilities = {}
+local UI = {}
 
-function Utilities.GetAllAbundanceZones()
-    local Abundances = {}
-    for _, Zone in pairs(game:GetService("Workspace").zones.fishing:GetChildren()) do
-        local Info = {}
-        if Zone:FindFirstChild("Abundance") then
-            if Zone:FindFirstChild("Abundance"):FindFirstChild("Chance") then
-                Info.Chance = Zone.Abundance.Chance.Value
-            else
-                Info.Chance = 1
-            end
-            Info.Position = Zone.Position
-            if Abundances[Zone.Abundance.Value] == nil then
-                Abundances[Zone.Abundance.Value] = Info
-            elseif Abundances[Zone.Abundance.Value].Chance < Info.Chance then
-                Abundances[Zone.Abundance.Value] = Info
-            end
+local CalibrationData = {}
+
+local FischUser = {}
+
+local NEVERLOSE = loadstring(game:HttpGet("https://raw.githubusercontent.com/IayZBoy/TrollScripts/main/randomuilib.lua"))()
+
+local Notification = NEVERLOSE.Notification();
+
+NEVERLOSE:Theme("dark")
+
+--UI
+
+for Setting, Value in pairs(Options) do
+    if type(Value) == "boolean" then
+        UI[Setting] = function(Val)
+            Options[Setting] = Val
         end
     end
-    return Abundances
 end
 
--- Core Functions
-local Core = {}
+function UI.Initialize()
+    --UI
 
-function Core.TapShake()
+    local Windows = NEVERLOSE:AddWindow("oggsunny","oggsunny - Fisch - V0.0.4 - discord.gg/fichy47")
+
+    local FishingTab = Windows:AddTab("Fishing", "earth")
+
+    local Interactions = Windows:AddTab("Interactions", "list")
+
+    local AreaTeleportsTab = Windows:AddTab("Area Teleports", "earth")
+
+    local MechanicsSection = FishingTab:AddSection("Mechanics", "left")
+
+    local Convenience = FishingTab:AddSection("Convenience", "left")
+
+    local CreditsSection = FishingTab:AddSection("Credits", "right")
+
+    local Teleports = AreaTeleportsTab:AddSection("Teleports", "left")
+    
+    -- Add new sections for enhanced teleports
+    local IslandTeleports = AreaTeleportsTab:AddSection("Island Teleports", "right")
+    
+    local Actions = Interactions:AddSection("Actions", "left")
+
+    -- Added Auto Sell section
+    local SellSection = Interactions:AddSection("Auto Sell", "right")
+
+    SellSection:AddToggle("Auto Sell", false, UI.AutoSell)
+    
+    SellSection:AddSlider("Auto Sell Delay (min)", 1, 30, 3, 1, function(value)
+        Options.AutoSellDelay = value
+    end)
+
+    Actions:AddButton("Sell All", FischUser.Sell)
+
+    Convenience:AddToggle("Float On Water", false, UI.FloatOnWater)
+
+    Convenience:AddLabel("Turn ON to walk around and choose spot.")
+    
+    Convenience:AddLabel("Turn OFF to choose your position.")
+
+    Convenience:AddToggle("Lock Position", false, function(v) 
+        Internal.LockedPosition = game.Players.LocalPlayer.Character.HumanoidRootPart.Position
+        UI.Lock(v) 
+    end)
+
+    -- Keeping only Enter Shake
+    MechanicsSection:AddToggle("Auto Shake (Enter)", false, UI.AutoShake2)
+    
+    MechanicsSection:AddSlider("Auto Shake Delay", 0.1, 1, 0.3, 0.1, function(value)
+        Options.AutoShakeDelay = value
+    end)
+
+    MechanicsSection:AddToggle("Auto Reel (Blatant)", false, UI.AutoMinigameBlatant)
+
+    MechanicsSection:AddToggle("Auto Cast", false, UI.AutoCast)
+
+    for Place, Position in pairs(CalibrationData.Positions) do
+        Teleports:AddButton(
+            "Teleport to "..Place,
+            function()
+                game.Players.LocalPlayer.Character.HumanoidRootPart.Position = Position
+            end
+        )
+    end
+    
+    -- Add Island Teleport Dropdown
+    local IslandOptions = {"Moosewood", "Roslit Bay", "Terrapin", "Sunstone", "Statue of Sovereignty", 
+                          "Mushgrove Swamp", "Snowcap", "Vertigo", "Keepers Altar", "The Arch", "Desolate Deep"}
+    
+    IslandTeleports:AddDropdown("Select Island", IslandOptions, "Moosewood", function(value)
+        Internal.SelectedIsland = value
+    end)
+    
+    IslandTeleports:AddButton("Teleport to Island", function()
+        if Internal.SelectedIsland == "Moosewood" then
+            LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(382.893, 134.501, 242.632)
+        elseif Internal.SelectedIsland == "Roslit Bay" then
+            LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(game:GetService("Workspace").world.spawns.TpSpots.roslit.Position)
+        elseif Internal.SelectedIsland == "Terrapin" then
+            LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(-146.693, 144.931, 1903.16)
+        elseif Internal.SelectedIsland == "Sunstone" then
+            LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(game:GetService("Workspace").world.spawns.TpSpots.sunstone.Position)
+        elseif Internal.SelectedIsland == "Statue of Sovereignty" then
+            LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(game:GetService("Workspace").world.spawns.TpSpots.statue.Position)
+        elseif Internal.SelectedIsland == "Mushgrove Swamp" then
+            LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(game:GetService("Workspace").world.spawns.TpSpots.mushgrove.Position)
+        elseif Internal.SelectedIsland == "Snowcap" then
+            LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(game:GetService("Workspace").world.spawns.TpSpots.snowcap.Position)
+        elseif Internal.SelectedIsland == "Vertigo" then
+            LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(game:GetService("Workspace").world.spawns.TpSpots.vertigo.Position)
+        elseif Internal.SelectedIsland == "Keepers Altar" then
+            LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(1317.79, -805.292, -111.615)
+        elseif Internal.SelectedIsland == "The Arch" then
+            LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(game:GetService("Workspace").world.spawns.TpSpots.arch.Position)
+        elseif Internal.SelectedIsland == "Desolate Deep" then
+            LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(-1525.85986328125, -234.70187377929688, -2856.092041015625)
+        end
+        Notification:Notify("info", "Teleported", "Successfully teleported to " .. Internal.SelectedIsland, 3)
+    end)
+
+
+    local AbundanceZoneSection = FishingTab:AddSection("Abundances", "right")
+    
+    local Ab = {}
+
+    local Ab2 = {}
+
+    local Choice = nil
+
+    local LabeledChance = nil
+
+    local AbundanceChoice = AbundanceZoneSection:AddDropdown("Abundances", Ab, "Loading", function(D)
+        LabeledChance:Text("Chance: "..tostring(Ab2[D].Chance).."%")
+        Choice = Ab2[D]
+    end)
+
+    LabeledChance = AbundanceZoneSection:AddLabel("Chance: 0%")
+
+    local GotoAbundance = AbundanceZoneSection:AddButton("Go to Abundance", function() 
+        game.Players.LocalPlayer.Character.HumanoidRootPart.Position = Vector3.new(Choice.Position.X, 137.77, Choice.Position.Z)
+    end)
+
+    local FishRadarPlaces = {}
+
+    local I = 0
+
+    while I < 100 do
+        I = I + 1
+        FishingTab:AddSection("Scrolling Space", "right")
+    end
+
+    spawn(function()
+        while task.wait(5) do
+            local Places = FischAPI.GetAllAbundanceZones()
+            Ab2 = Places
+            Ab = {}
+            for Fish, Info in pairs(Ab2) do
+                table.insert(Ab, Fish)
+            end
+            AbundanceChoice:Refresh(Ab)
+        end
+    end)
+end
+
+--Utils
+
+function Utils.Overlap(gui1, gui2)
+    local gui1_topLeft = gui1.AbsolutePosition
+    local gui1_bottomRight = gui1_topLeft + gui1.AbsoluteSize
+
+    local gui2_topLeft = gui2.AbsolutePosition
+    local gui2_bottomRight = gui2_topLeft + gui2.AbsoluteSize
+    
+    return ((gui1_topLeft.x < gui2_bottomRight.x and gui1_bottomRight.x > gui2_topLeft.x) and (gui1_topLeft.y < gui2_bottomRight.y and gui1_bottomRight.y > gui2_topLeft.y))
+end
+
+--VI
+
+VI.State = false
+
+function VI.ClickUI(ui)
+    local x = ui.AbsolutePosition.X + (ui.AbsoluteSize.X / 2)
+    local y = ui.AbsolutePosition.Y + (ui.AbsoluteSize.Y / 2)
+    VIM:SendMouseButtonEvent(x, y, 0, true, game, 0)
+    task.wait(0.05)
+    VIM:SendMouseButtonEvent(x, y, 0, false, game, 0)
+end
+
+function VI.Down(ui)
+    VI.State = true
+    local x = ui.AbsolutePosition.X + (ui.AbsoluteSize.X / 2)
+    local y = ui.AbsolutePosition.Y + (ui.AbsoluteSize.Y / 2)
+    VIM:SendMouseButtonEvent(x, y, 0, true, game, 0)
+end
+
+function VI.Up(ui)
+    VI.State = false
+    local x = ui.AbsolutePosition.X + (ui.AbsoluteSize.X / 2)
+    local y = ui.AbsolutePosition.Y + (ui.AbsoluteSize.Y / 2)
+    VIM:SendMouseButtonEvent(x, y, 0, false, game, 0)
+end
+
+--API
+
+function FischAPI.TapShake()
     local shakeUI = game:GetService("Players").LocalPlayer.PlayerGui:FindFirstChild("shakeui")
     if shakeUI and shakeUI.Enabled then
         local safezone = shakeUI:FindFirstChild("safezone")
         if safezone then
             local button = safezone:FindFirstChild("button")
             if button and button:IsA("ImageButton") and button.Visible then
-                if Options.AutoShake then
+                if Options.AutoShake2 then
                     GuiService.SelectedObject = button
                     VIM:SendKeyEvent(true, Enum.KeyCode.Return, false, game)
                     VIM:SendKeyEvent(false, Enum.KeyCode.Return, false, game)
@@ -72,11 +256,11 @@ function Core.TapShake()
     end
 end
 
-function Core.InstantReel()
+function FischAPI.InstantReel()
     game:GetService("ReplicatedStorage").events.reelfinished:FireServer(100, true)
 end
 
-function Core.Cast()
+function FischAPI.Cast()
     local player = game.Players.LocalPlayer
     local character = player.Character
 
@@ -110,11 +294,32 @@ function Core.Cast()
     end
 end
 
-function Core.SellAll()
+function FischAPI.GetAllAbundanceZones()
+    local Abundances = {}
+    for i, Zone in pairs(game:GetService("Workspace").zones.fishing:GetChildren()) do
+        local Info = {}
+        if Zone:FindFirstChild("Abundance") then
+            if Zone:FindFirstChild("Abundance"):FindFirstChild("Chance") then
+                Info.Chance = Zone.Abundance.Chance.Value
+            else
+                Info.Chance = 1
+            end
+            Info.Position = Zone.Position
+            if Abundances[Zone.Abundance.Value] == nil then
+                Abundances[Zone.Abundance.Value] = Info
+            elseif Abundances[Zone.Abundance.Value].Chance < Info.Chance then
+                Abundances[Zone.Abundance.Value] = Info
+            end
+        end
+    end
+    return Abundances
+end
+
+function FischAPI.SellAll()
     workspace.world.npcs["Marc Merchant"].merchant.sellall:InvokeServer()
 end
 
-function Core.AutoSellWithReturn()
+function FischAPI.AutoSellWithReturn()
     local player = game.Players.LocalPlayer
     local character = player.Character or player.CharacterAdded:Wait()
     local rootPart = character:WaitForChild("HumanoidRootPart")
@@ -145,369 +350,140 @@ function Core.AutoSellWithReturn()
     end
 end
 
-function Core.GetFish()
-    local fishList = {}
-    for _, v in pairs(game.Players.LocalPlayer.Backpack:GetChildren()) do
-        table.insert(fishList, v.Name)
+function FischAPI.GetFish()
+    local Text = "Items/Fish:\n"
+    for i, v in pairs(game.Players.LocalPlayer.Backpack:GetChildren()) do
+        Text=Text..v.Name.."\n"
     end
-    return fishList
+    return Text
 end
 
-function Core.LockPosition()
-    if Internal.LockedPosition and Options.Lock then
-        game.Players.LocalPlayer.Character.HumanoidRootPart.Position = Internal.LockedPosition
-    end
+--User
+
+function FischUser.Sell()
+    FischAPI.SellAll()
 end
 
-function Core.FloatOnWater()
+function FischUser.AutoShake()
+    task.wait(Options.AutoShakeDelay)
+    FischAPI.TapShake()
+end
+
+function FischUser.OpenBoatUI()
+    game:GetService("Players").LocalPlayer.PlayerGui.hud.safezone.shipwright.Visible = not game:GetService("Players").LocalPlayer.PlayerGui.hud.safezone.shipwright.Visible
+end
+
+function FischUser.LockPosition()
+    game.Players.LocalPlayer.Character.HumanoidRootPart.Position = Internal.LockedPosition
+end
+
+function FischUser.FloatOnWater()
     pcall(function()
-        if Internal.FloatPart then
-            Internal.FloatPart:Destroy()
+        Internal.FloatPart:Destroy()
+    end)
+    Internal.FloatPart = Instance.new("Part", workspace)
+    Internal.FloatPart.Anchored = true
+    Internal.FloatPart.Size = Vector3.new(10,1,10)
+    Internal.FloatPart.Position = Vector3.new(game.Players.LocalPlayer.Character.HumanoidRootPart.Position.X, 133.77, game.Players.LocalPlayer.Character.HumanoidRootPart.Position.Z)
+    game.Players.LocalPlayer.Character.HumanoidRootPart.Position = Vector3.new(game.Players.LocalPlayer.Character.HumanoidRootPart.Position.X, 150, game.Players.LocalPlayer.Character.HumanoidRootPart.Position.Z)
+end
+
+function FischUser.AutoReel()
+    FischAPI.InstantReel()
+end
+
+function FischUser.AutoCast()
+    FischAPI.Cast()
+end
+
+function FischUser.AutoSellLoop()
+    if Options.AutoSell then
+        FischAPI.AutoSellWithReturn()
+    end
+end
+
+function FischUser.StepLoop()
+    if Options.FloatOnWater == true then
+        pcall(function()
+            FischUser.FloatOnWater()
+        end)
+    end
+    
+    -- Handle auto shake (enter only)
+    if Options.AutoShake2 then
+        pcall(function()
+            FischUser.AutoShake()
+        end)
+    end
+    
+    if Options.AutoMinigameBlatant == true then
+        pcall(function()
+            FischUser.AutoReel()
+        end)
+    end
+end
+
+function FischUser.Heartbeat()
+    -- Empty now that megaladon hunting is removed
+end
+
+function FischUser.OneStep()
+    -- Empty for now
+end
+
+function FischUser.Relaxed1Sec()
+    if Options.AutoCast == true then
+        pcall(function()
+            if Options.Lock == true then
+                FischUser.LockPosition()
+            end
+            FischUser.AutoCast()
+        end)
+    end
+end
+
+function FischUser.Initialize()
+    spawn(function()
+        game:GetService("RunService").RenderStepped:Connect(function()
+            FischUser.Heartbeat()
+        end)
+    end)
+    
+    spawn(function()
+        FischUser.OneStep()
+    end)
+    
+    spawn(function()
+        while task.wait(0.005) do
+            pcall(function()
+                FischUser.StepLoop()
+            end)
         end
-        Internal.FloatPart = Instance.new("Part", workspace)
-        Internal.FloatPart.Anchored = true
-        Internal.FloatPart.Size = Vector3.new(10,1,10)
-        Internal.FloatPart.Position = Vector3.new(game.Players.LocalPlayer.Character.HumanoidRootPart.Position.X, 133.77, game.Players.LocalPlayer.Character.HumanoidRootPart.Position.Z)
-        Internal.FloatPart.Transparency = 0.7
-        game.Players.LocalPlayer.Character.HumanoidRootPart.Position = Vector3.new(game.Players.LocalPlayer.Character.HumanoidRootPart.Position.X, 150, game.Players.LocalPlayer.Character.HumanoidRootPart.Position.Z)
+    end)
+    
+    spawn(function()
+        while task.wait(1) do
+            FischUser.Relaxed1Sec()
+        end
+    end)
+    
+    spawn(function()
+        while task.wait(Options.AutoSellDelay * 60) do
+            pcall(function()
+                FischUser.AutoSellLoop()
+            end)
+        end
     end)
 end
 
-function Core.OpenBoatUI()
-    local hud = game:GetService("Players").LocalPlayer.PlayerGui.hud
-    if hud and hud:FindFirstChild("safezone") and hud.safezone:FindFirstChild("shipwright") then
-        hud.safezone.shipwright.Visible = not hud.safezone.shipwright.Visible
-    end
-end
+Notification:Notify(
+    "info",
+    "Fisch Script Loaded",
+    "Any fishing rod will work with this script!",
+    5
+)
 
--- Setup UI Tabs
-local FishingTab = Window:MakeTab({
-    Name = "Fishing",
-    Icon = "rbxassetid://4483345998",
-    PremiumOnly = false
-})
+FischUser.Initialize()
+UI.Initialize()
 
-local TeleportTab = Window:MakeTab({
-    Name = "Teleports",
-    Icon = "rbxassetid://4483364237",
-    PremiumOnly = false
-})
-
-local InteractTab = Window:MakeTab({
-    Name = "Interaction",
-    Icon = "rbxassetid://4483345821",
-    PremiumOnly = false
-})
-
-local AbundanceTab = Window:MakeTab({
-    Name = "Abundances",
-    Icon = "rbxassetid://4483345737",
-    PremiumOnly = false
-})
-
--- Fishing Tab
-FishingTab:AddToggle({
-    Name = "Auto Shake (Enter)",
-    Default = false,
-    Callback = function(Value)
-        Options.AutoShake = Value
-    end
-})
-
-FishingTab:AddSlider({
-    Name = "Auto Shake Delay",
-    Min = 0.1,
-    Max = 1,
-    Default = 0.3,
-    Color = Color3.fromRGB(255, 255, 255),
-    Increment = 0.1,
-    ValueName = "seconds",
-    Callback = function(Value)
-        Options.AutoShakeDelay = Value
-    end
-})
-
-FishingTab:AddToggle({
-    Name = "Auto Reel (Blatant)",
-    Default = false,
-    Callback = function(Value)
-        Options.AutoMinigame = Value
-    end
-})
-
-FishingTab:AddToggle({
-    Name = "Auto Cast",
-    Default = false,
-    Callback = function(Value)
-        Options.AutoCast = Value
-    end
-})
-
-FishingTab:AddToggle({
-    Name = "Float On Water",
-    Default = false,
-    Callback = function(Value)
-        Options.FloatOnWater = Value
-        if Value then
-            Core.FloatOnWater()
-        end
-    end
-})
-
-FishingTab:AddToggle({
-    Name = "Lock Position",
-    Default = false,
-    Callback = function(Value)
-        Options.Lock = Value
-        if Value then
-            Internal.LockedPosition = game.Players.LocalPlayer.Character.HumanoidRootPart.Position
-        end
-    end
-})
-
--- Interaction Tab
-InteractTab:AddButton({
-    Name = "Sell All Fish",
-    Callback = function()
-        Core.SellAll()
-    end
-})
-
-InteractTab:AddToggle({
-    Name = "Auto Sell",
-    Default = false,
-    Callback = function(Value)
-        Options.AutoSell = Value
-    end
-})
-
-InteractTab:AddSlider({
-    Name = "Auto Sell Delay",
-    Min = 1,
-    Max = 30,
-    Default = 3,
-    Color = Color3.fromRGB(255, 255, 255),
-    Increment = 1,
-    ValueName = "minutes",
-    Callback = function(Value)
-        Options.AutoSellDelay = Value
-    end
-})
-
-InteractTab:AddButton({
-    Name = "Open/Close Boat UI",
-    Callback = function()
-        Core.OpenBoatUI()
-    end
-})
-
--- Teleport Tab
-local IslandList = {"Moosewood", "Roslit Bay", "Terrapin", "Sunstone", "Statue of Sovereignty", 
-                   "Mushgrove Swamp", "Snowcap", "Vertigo", "Keepers Altar", "The Arch", "Desolate Deep"}
-
-TeleportTab:AddDropdown({
-    Name = "Select Island",
-    Default = "Moosewood",
-    Options = IslandList,
-    Callback = function(Value)
-        Internal.SelectedIsland = Value
-    end
-})
-
-TeleportTab:AddButton({
-    Name = "Teleport to Island",
-    Callback = function()
-        local rootPart = LocalPlayer.Character.HumanoidRootPart
-        if Internal.SelectedIsland == "Moosewood" then
-            rootPart.CFrame = CFrame.new(382.893, 134.501, 242.632)
-        elseif Internal.SelectedIsland == "Roslit Bay" then
-            rootPart.CFrame = CFrame.new(game:GetService("Workspace").world.spawns.TpSpots.roslit.Position)
-        elseif Internal.SelectedIsland == "Terrapin" then
-            rootPart.CFrame = CFrame.new(-146.693, 144.931, 1903.16)
-        elseif Internal.SelectedIsland == "Sunstone" then
-            rootPart.CFrame = CFrame.new(game:GetService("Workspace").world.spawns.TpSpots.sunstone.Position)
-        elseif Internal.SelectedIsland == "Statue of Sovereignty" then
-            rootPart.CFrame = CFrame.new(game:GetService("Workspace").world.spawns.TpSpots.statue.Position)
-        elseif Internal.SelectedIsland == "Mushgrove Swamp" then
-            rootPart.CFrame = CFrame.new(game:GetService("Workspace").world.spawns.TpSpots.mushgrove.Position)
-        elseif Internal.SelectedIsland == "Snowcap" then
-            rootPart.CFrame = CFrame.new(game:GetService("Workspace").world.spawns.TpSpots.snowcap.Position)
-        elseif Internal.SelectedIsland == "Vertigo" then
-            rootPart.CFrame = CFrame.new(game:GetService("Workspace").world.spawns.TpSpots.vertigo.Position)
-        elseif Internal.SelectedIsland == "Keepers Altar" then
-            rootPart.CFrame = CFrame.new(1317.79, -805.292, -111.615)
-        elseif Internal.SelectedIsland == "The Arch" then
-            rootPart.CFrame = CFrame.new(game:GetService("Workspace").world.spawns.TpSpots.arch.Position)
-        elseif Internal.SelectedIsland == "Desolate Deep" then
-            rootPart.CFrame = CFrame.new(-1525.85986328125, -234.70187377929688, -2856.092041015625)
-        end
-        OrionLib:MakeNotification({
-            Name = "Teleported",
-            Content = "Successfully teleported to " .. Internal.SelectedIsland,
-            Image = "rbxassetid://4483345998",
-            Time = 3
-        })
-    end
-})
-
-local WorldEventOptions = {"Traveler Merchant", "Strange Whirlpool"}
-
-TeleportTab:AddDropdown({
-    Name = "Select World Event",
-    Default = "Traveler Merchant",
-    Options = WorldEventOptions,
-    Callback = function(Value)
-        Internal.SelectedWorldEvent = Value
-    end
-})
-
-TeleportTab:AddButton({
-    Name = "Teleport to World Event",
-    Callback = function()
-        if Internal.SelectedWorldEvent == "Traveler Merchant" then
-            LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(game.Workspace.active["Merchant Boat"].Boat["Merchant Boat"].r.HandlesR.Position)
-        elseif Internal.SelectedWorldEvent == "Strange Whirlpool" then
-            local offset = Vector3.new(0, 125, 0)
-            LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(game.Workspace.zones.fishing.Isonade.Position + offset)
-        end
-        OrionLib:MakeNotification({
-            Name = "Teleported",
-            Content = "Successfully teleported to " .. Internal.SelectedWorldEvent,
-            Image = "rbxassetid://4483345998",
-            Time = 3
-        })
-    end
-})
-
-TeleportTab:AddButton({
-    Name = "Teleport to Trident",
-    Callback = function()
-        LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(-1483.99304, -225.975464, -2201.59741)
-        OrionLib:MakeNotification({
-            Name = "Teleported",
-            Content = "Successfully teleported to the Trident",
-            Image = "rbxassetid://4483345998",
-            Time = 3
-        })
-    end
-})
-
--- Abundance Tab
-local abundanceDropdown
-local abundanceLabel
-
-AbundanceTab:AddLabel("Loading Abundance Data...")
-
-local function RefreshAbundanceData()
-    local abundanceZones = Utilities.GetAllAbundanceZones()
-    AbundanceData = abundanceZones
-    
-    local fishNames = {}
-    for name, _ in pairs(abundanceZones) do
-        table.insert(fishNames, name)
-    end
-    
-    if abundanceDropdown then
-        abundanceDropdown:Refresh(fishNames, fishNames[1])
-    else
-        abundanceDropdown = AbundanceTab:AddDropdown({
-            Name = "Select Fish Abundance",
-            Default = fishNames[1] or "None Found",
-            Options = fishNames,
-            Callback = function(Value)
-                if AbundanceData[Value] then
-                    if abundanceLabel then
-                        abundanceLabel:Set("Chance: " .. tostring(AbundanceData[Value].Chance) .. "%")
-                    end
-                end
-            end
-        })
-        
-        abundanceLabel = AbundanceTab:AddLabel("Chance: 0%")
-        
-        AbundanceTab:AddButton({
-            Name = "Go to Abundance Zone",
-            Callback = function()
-                local selectedFish = abundanceDropdown.Value
-                if AbundanceData[selectedFish] then
-                    game.Players.LocalPlayer.Character.HumanoidRootPart.Position = Vector3.new(
-                        AbundanceData[selectedFish].Position.X, 
-                        137.77, 
-                        AbundanceData[selectedFish].Position.Z
-                    )
-                    OrionLib:MakeNotification({
-                        Name = "Teleported",
-                        Content = "Going to " .. selectedFish .. " abundance zone",
-                        Image = "rbxassetid://4483345998",
-                        Time = 3
-                    })
-                end
-            end
-        })
-    end
-end
-
--- Main Loops
-spawn(function()
-    while true do
-        task.wait(0.005)
-        if Options.Lock then
-            Core.LockPosition()
-        end
-        
-        if Options.FloatOnWater then
-            Core.FloatOnWater()
-        end
-        
-        if Options.AutoShake then
-            Core.TapShake()
-        end
-        
-        if Options.AutoMinigame then
-            Core.InstantReel()
-        end
-    end
-end)
-
-spawn(function()
-    while true do
-        task.wait(1)
-        if Options.AutoCast then
-            Core.Cast()
-        end
-    end
-end)
-
-spawn(function()
-    while true do
-        task.wait(Options.AutoSellDelay * 60)
-        if Options.AutoSell then
-            Core.AutoSellWithReturn()
-        end
-    end
-end)
-
-spawn(function()
-    while true do
-        RefreshAbundanceData()
-        task.wait(10)
-    end
-end)
-
--- Initialize
-OrionLib:MakeNotification({
-    Name = "Fisch Script Loaded",
-    Content = "Any fishing rod will work with this script!",
-    Image = "rbxassetid://4483345998",
-    Time = 5
-})
-
--- Clean up on script end
-game:GetService("CoreGui").ChildRemoved:Connect(function(child)
-    if child.Name == "Orion" then
-        OrionLib:Destroy()
-        if Internal.FloatPart then
-            Internal.FloatPart:Destroy()
-        end
-    end
-end)
+return FischAPI
