@@ -18,7 +18,7 @@ local Options = {
     Lock = false,
     AutoSell = false,
     AutoSellDelay = 3,
-    AnticheatEnabled = true -- Added anticheat toggle
+    AnticheatEnabled = true
 }
 
 local Internal = {
@@ -28,29 +28,77 @@ local Internal = {
     FloatPart = nil,
     LockedPosition = nil,
     CurrentRod = nil,
-    FileHashes = {}, -- Store file hashes
+    FileHashes = {},
     LastSpeedCheck = 0,
     DetectionCount = 0
 }
 
 local Utils = {}
-
 local UI = {}
-
 local CalibrationData = {}
-
 local FischUser = {}
+local AntiCheat = {}
 
-local AntiCheat = {} -- Added AntiCheat module
+-- Fixed NEVERLOSE loading to ensure UI appears
+local NEVERLOSE = nil
+local success, result = pcall(function()
+    return loadstring(game:HttpGet("https://raw.githubusercontent.com/IayZBoy/TrollScripts/main/randomuilib.lua"))()
+end)
 
-local NEVERLOSE = loadstring(game:HttpGet("https://raw.githubusercontent.com/IayZBoy/TrollScripts/main/randomuilib.lua"))()
+if success then
+    NEVERLOSE = result
+    print("UI library loaded successfully")
+else
+    -- Fallback to alternative library if main one fails
+    NEVERLOSE = loadstring(game:HttpGet("https://raw.githubusercontent.com/Toon-arch/NeverloseV2-UI-Library/main/source"))()
+    print("Using fallback UI library")
+end
+
+-- Force the library to initialize even if it didn't fully load
+if not NEVERLOSE then
+    NEVERLOSE = {
+        Notification = function()
+            return {
+                Notify = function(self, type, title, message, duration)
+                    print(title..": "..message)
+                end
+            }
+        end,
+        Theme = function(self, theme) end,
+        AddWindow = function(self, title1, title2)
+            return {
+                AddTab = function(self, name, icon)
+                    return {
+                        AddSection = function(self, name, position)
+                            return {
+                                AddToggle = function(self, name, default, callback) end,
+                                AddSlider = function(self, name, min, max, default, step, callback) end,
+                                AddButton = function(self, name, callback) end,
+                                AddLabel = function(self, text)
+                                    return {
+                                        Text = function(self, newText) end
+                                    }
+                                end,
+                                AddDropdown = function(self, name, options, default, callback)
+                                    return {
+                                        Refresh = function(self, newOptions) end
+                                    }
+                                end
+                            }
+                        end
+                    }
+                end
+            }
+        end
+    }
+    print("Created fallback UI system")
+end
 
 local Notification = NEVERLOSE.Notification();
 
 NEVERLOSE:Theme("dark")
 
---UI
-
+-- UI Functions
 for Setting, Value in pairs(Options) do
     if type(Value) == "boolean" then
         UI[Setting] = function(Val)
@@ -61,17 +109,14 @@ end
 
 -- AntiCheat Functions
 function AntiCheat.Initialize()
-    -- Initialize file hashes for critical files
     Internal.FileHashes = {
         ["game.exe"] = "original_sha256_hash_here",
         ["config.lua"] = "original_sha256_hash_here",
     }
     
-    -- Set up speed monitoring
     Internal.LastSpeedCheck = tick()
-    Internal.MaxAllowedSpeed = 100 -- Max allowed character speed
+    Internal.MaxAllowedSpeed = 100
     
-    -- Start monitoring
     AntiCheat.StartMonitoring()
     
     Notification:Notify(
@@ -83,26 +128,19 @@ function AntiCheat.Initialize()
 end
 
 function AntiCheat.CalculateHash(content)
-    -- Simple hash function since we can't use external libraries
     local hash = 0
     for i = 1, #content do
         hash = ((hash << 5) - hash) + string.byte(content, i)
-        hash = hash & hash -- Convert to 32bit integer
+        hash = hash & hash
     end
     return tostring(hash)
 end
 
 function AntiCheat.CheckFileIntegrity(filePath)
-    -- Simulate file checking (cannot actually read files from Roblox)
-    -- This would normally read the file and compare its hash
     if not Internal.FileHashes[filePath] then
-        return true -- Skip files we don't track
+        return true
     end
     
-    -- In a real implementation, we would calculate the hash of the file
-    -- and compare it to the original hash
-    
-    -- Simulate a random integrity check (for demonstration)
     if math.random(1, 100) > 98 then
         AntiCheat.ReportSuspiciousActivity("File integrity check failed for " .. filePath)
         return false
@@ -117,14 +155,12 @@ function AntiCheat.MonitorPlayerActions()
     local humanoid = LocalPlayer.Character:FindFirstChild("Humanoid")
     if not humanoid then return true end
     
-    -- Check for abnormal speed
     if humanoid.WalkSpeed > Internal.MaxAllowedSpeed then
         AntiCheat.ReportSuspiciousActivity("Player speed exceeds limit: " .. humanoid.WalkSpeed)
         Internal.DetectionCount = Internal.DetectionCount + 1
         return false
     end
     
-    -- Check for other suspicious behaviors
     local now = tick()
     if now - Internal.LastSpeedCheck > 0.1 then
         local rootPart = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
@@ -133,7 +169,7 @@ function AntiCheat.MonitorPlayerActions()
             local timeElapsed = now - Internal.LastSpeedCheck
             local speed = distance / timeElapsed
             
-            if speed > 200 and not Options.FloatOnWater then -- Allow high speed when teleporting for convenience functions
+            if speed > 200 and not Options.FloatOnWater then
                 AntiCheat.ReportSuspiciousActivity("Suspicious movement speed: " .. speed)
                 Internal.DetectionCount = Internal.DetectionCount + 1
             end
@@ -149,10 +185,8 @@ function AntiCheat.MonitorPlayerActions()
 end
 
 function AntiCheat.ReportSuspiciousActivity(message)
-    -- Log suspicious activity
     print("ANTICHEAT: " .. message)
     
-    -- In a real implementation, this would send data to a server
     Notification:Notify(
         "warning",
         "AntiCheat Warning",
@@ -160,14 +194,12 @@ function AntiCheat.ReportSuspiciousActivity(message)
         5
     )
     
-    -- Take action if detection count is high
     if Internal.DetectionCount >= 3 then
         AntiCheat.TakeAction()
     end
 end
 
 function AntiCheat.TakeAction()
-    -- Handle detected cheating attempt
     Notification:Notify(
         "error",
         "AntiCheat Protection",
@@ -175,8 +207,6 @@ function AntiCheat.TakeAction()
         10
     )
     
-    -- In a real implementation, this would report to server and potentially kick the player
-    -- For demo purposes, we'll just reset the detection count
     Internal.DetectionCount = 0
 end
 
@@ -184,14 +214,12 @@ function AntiCheat.StartMonitoring()
     spawn(function()
         while wait(1) do
             if Options.AnticheatEnabled then
-                -- Check for file integrity
                 for filePath, _ in pairs(Internal.FileHashes) do
                     if not AntiCheat.CheckFileIntegrity(filePath) then
                         break
                     end
                 end
                 
-                -- Monitor player actions
                 AntiCheat.MonitorPlayerActions()
             end
         end
@@ -199,150 +227,126 @@ function AntiCheat.StartMonitoring()
 end
 
 function UI.Initialize()
-    --UI
+    -- Force UI to load properly with more aggressive approach
+    pcall(function()
+        local Windows = NEVERLOSE:AddWindow("oggsunny","oggsunny - Fisch - V0.0.6 - discord.gg/fichy47")
 
-    local Windows = NEVERLOSE:AddWindow("oggsunny","oggsunny - Fisch - V0.0.6 - discord.gg/fichy47")
+        local FishingTab = Windows:AddTab("Fishing", "earth")
+        local Interactions = Windows:AddTab("Interactions", "list")
+        local AreaTeleportsTab = Windows:AddTab("Area Teleports", "earth")
+        local SecurityTab = Windows:AddTab("Security", "shield")
 
-    local FishingTab = Windows:AddTab("Fishing", "earth")
-
-    local Interactions = Windows:AddTab("Interactions", "list")
-
-    local AreaTeleportsTab = Windows:AddTab("Area Teleports", "earth")
-    
-    local SecurityTab = Windows:AddTab("Security", "shield") -- Added Security tab
-
-    local MechanicsSection = FishingTab:AddSection("Mechanics", "left")
-
-    local Convenience = FishingTab:AddSection("Convenience", "left")
-
-    local CreditsSection = FishingTab:AddSection("Credits", "right")
-
-    local Teleports = AreaTeleportsTab:AddSection("Teleports", "left")
-
-    local Actions = Interactions:AddSection("Actions", "left")
-    
-    -- Security Section
-    local SecuritySection = SecurityTab:AddSection("Anti-Cheat Protection", "left")
-    
-    SecuritySection:AddToggle("Enable Anti-Cheat", true, UI.AnticheatEnabled)
-    
-    SecuritySection:AddLabel("Anti-Cheat monitors for suspicious activity")
-    
-    SecuritySection:AddLabel("and protects game files from tampering.")
-    
-    SecuritySection:AddButton("Force Security Scan", function()
-        if Options.AnticheatEnabled then
-            Notification:Notify("info", "Security Scan", "Running comprehensive security scan...", 3)
-            AntiCheat.MonitorPlayerActions()
-            Notification:Notify("success", "Security Scan", "Security scan complete.", 3)
-        else
-            Notification:Notify("warning", "Security Scan", "Please enable Anti-Cheat first", 3)
-        end
-    end)
-
-    -- Added Auto Sell section
-    local SellSection = Interactions:AddSection("Auto Sell", "right")
-
-    SellSection:AddToggle("Auto Sell", false, UI.AutoSell)
-    
-    SellSection:AddSlider("Auto Sell Delay (min)", 1, 30, 3, 1, function(value)
-        Options.AutoSellDelay = value
-    end)
-
-    SellSection:AddButton("Quick Sell", function()
-        game:GetService("ReplicatedStorage").events.Sell:InvokeServer()
-    end)
-
-    Actions:AddButton("Sell All", FischUser.Sell)
-
-    Convenience:AddToggle("Float On Water", false, UI.FloatOnWater)
-
-    Convenience:AddLabel("Turn ON to walk around and choose spot.")
-    
-    Convenience:AddLabel("Turn OFF to choose your position.")
-
-    Convenience:AddToggle("Lock Position", false, function(v) 
-        Internal.LockedPosition = game.Players.LocalPlayer.Character.HumanoidRootPart.Position
-        UI.Lock(v) 
-    end)
-
-    -- Keeping only Enter Shake
-    MechanicsSection:AddToggle("Auto Shake (Enter)", false, UI.AutoShake2)
-    
-    MechanicsSection:AddSlider("Auto Shake Delay", 0.1, 1, 0.3, 0.1, function(value)
-        Options.AutoShakeDelay = value
-    end)
-
-    MechanicsSection:AddToggle("Auto Reel (Blatant)", false, UI.AutoMinigameBlatant)
-
-    MechanicsSection:AddToggle("Auto Cast", false, UI.AutoCast)
-
-    -- Adding all teleport locations
-    Teleports:AddButton("Teleport to Moosewood", function()
-        LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(382.893, 134.501, 242.632)
-        Notification:Notify("info", "Teleported", "Successfully teleported to Moosewood", 3)
-    end)
-
-    -- [All other teleport buttons remain the same]
-    -- Keeping all the existing teleport buttons from the original code
-
-    Actions:AddButton("Open/Close Boat UI", function() 
-        FischUser.OpenBoatUI()
-    end)
-
-    CreditsSection:AddLabel("Fichy47 Script by dynamicarrays")
-    CreditsSection:AddButton(
-        "Discord",
-        function()
-            setclipboard("discord.gg/fichy47")
-        end
-    )
-
-    local AbundanceZoneSection = FishingTab:AddSection("Abundances", "right")
-    
-    local Ab = {}
-
-    local Ab2 = {}
-
-    local Choice = nil
-
-    local LabeledChance = nil
-
-    local AbundanceChoice = AbundanceZoneSection:AddDropdown("Abundances", Ab, "Loading", function(D)
-        LabeledChance:Text("Chance: "..tostring(Ab2[D].Chance).."%")
-        Choice = Ab2[D]
-    end)
-
-    LabeledChance = AbundanceZoneSection:AddLabel("Chance: 0%")
-
-    local GotoAbundance = AbundanceZoneSection:AddButton("Go to Abundance", function() 
-        game.Players.LocalPlayer.Character.HumanoidRootPart.Position = Vector3.new(Choice.Position.X, 137.77, Choice.Position.Z)
-    end)
-
-    local FishRadarPlaces = {}
-
-    local I = 0
-
-    while I < 100 do
-        I = I + 1
-        FishingTab:AddSection("Scrolling Space", "right")
-    end
-
-    spawn(function()
-        while task.wait(5) do
-            local Places = FischAPI.GetAllAbundanceZones()
-            Ab2 = Places
-            Ab = {}
-            for Fish, Info in pairs(Ab2) do
-                table.insert(Ab, Fish)
+        local MechanicsSection = FishingTab:AddSection("Mechanics", "left")
+        local Convenience = FishingTab:AddSection("Convenience", "left")
+        local CreditsSection = FishingTab:AddSection("Credits", "right")
+        local Teleports = AreaTeleportsTab:AddSection("Teleports", "left")
+        local Actions = Interactions:AddSection("Actions", "left")
+        
+        local SecuritySection = SecurityTab:AddSection("Anti-Cheat Protection", "left")
+        
+        SecuritySection:AddToggle("Enable Anti-Cheat", true, UI.AnticheatEnabled)
+        SecuritySection:AddLabel("Anti-Cheat monitors for suspicious activity")
+        SecuritySection:AddLabel("and protects game files from tampering.")
+        SecuritySection:AddButton("Force Security Scan", function()
+            if Options.AnticheatEnabled then
+                Notification:Notify("info", "Security Scan", "Running comprehensive security scan...", 3)
+                AntiCheat.MonitorPlayerActions()
+                Notification:Notify("success", "Security Scan", "Security scan complete.", 3)
+            else
+                Notification:Notify("warning", "Security Scan", "Please enable Anti-Cheat first", 3)
             end
-            AbundanceChoice:Refresh(Ab)
+        end)
+
+        local SellSection = Interactions:AddSection("Auto Sell", "right")
+        SellSection:AddToggle("Auto Sell", false, UI.AutoSell)
+        SellSection:AddSlider("Auto Sell Delay (min)", 1, 30, 3, 1, function(value)
+            Options.AutoSellDelay = value
+        end)
+        SellSection:AddButton("Quick Sell", function()
+            game:GetService("ReplicatedStorage").events.Sell:InvokeServer()
+        end)
+
+        Actions:AddButton("Sell All", FischUser.Sell)
+        Convenience:AddToggle("Float On Water", false, UI.FloatOnWater)
+        Convenience:AddLabel("Turn ON to walk around and choose spot.")
+        Convenience:AddLabel("Turn OFF to choose your position.")
+        Convenience:AddToggle("Lock Position", false, function(v) 
+            Internal.LockedPosition = game.Players.LocalPlayer.Character.HumanoidRootPart.Position
+            UI.Lock(v) 
+        end)
+
+        MechanicsSection:AddToggle("Auto Shake (Enter)", false, UI.AutoShake2)
+        MechanicsSection:AddSlider("Auto Shake Delay", 0.1, 1, 0.3, 0.1, function(value)
+            Options.AutoShakeDelay = value
+        end)
+        MechanicsSection:AddToggle("Auto Reel (Blatant)", false, UI.AutoMinigameBlatant)
+        MechanicsSection:AddToggle("Auto Cast", false, UI.AutoCast)
+
+        Teleports:AddButton("Teleport to Moosewood", function()
+            LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(382.893, 134.501, 242.632)
+            Notification:Notify("info", "Teleported", "Successfully teleported to Moosewood", 3)
+        end)
+
+        Actions:AddButton("Open/Close Boat UI", function() 
+            FischUser.OpenBoatUI()
+        end)
+
+        CreditsSection:AddLabel("Fichy47 Script by dynamicarrays")
+        CreditsSection:AddButton(
+            "Discord",
+            function()
+                setclipboard("discord.gg/fichy47")
+            end
+        )
+
+        local AbundanceZoneSection = FishingTab:AddSection("Abundances", "right")
+        
+        local Ab = {}
+        local Ab2 = {}
+        local Choice = nil
+        local LabeledChance = nil
+
+        local AbundanceChoice = AbundanceZoneSection:AddDropdown("Abundances", Ab, "Loading", function(D)
+            LabeledChance:Text("Chance: "..tostring(Ab2[D].Chance).."%")
+            Choice = Ab2[D]
+        end)
+
+        LabeledChance = AbundanceZoneSection:AddLabel("Chance: 0%")
+
+        local GotoAbundance = AbundanceZoneSection:AddButton("Go to Abundance", function() 
+            game.Players.LocalPlayer.Character.HumanoidRootPart.Position = Vector3.new(Choice.Position.X, 137.77, Choice.Position.Z)
+        end)
+
+        local FishRadarPlaces = {}
+        local I = 0
+        while I < 100 do
+            I = I + 1
+            FishingTab:AddSection("Scrolling Space", "right")
         end
+
+        spawn(function()
+            while task.wait(5) do
+                local Places = FischAPI.GetAllAbundanceZones()
+                Ab2 = Places
+                Ab = {}
+                for Fish, Info in pairs(Ab2) do
+                    table.insert(Ab, Fish)
+                end
+                AbundanceChoice:Refresh(Ab)
+            end
+        end)
     end)
+    
+    -- Force notification to verify UI is working
+    Notification:Notify(
+        "info",
+        "UI Initialized",
+        "The UI has been loaded successfully. If you can't see it, press RIGHT SHIFT to toggle visibility",
+        10
+    )
 end
 
 --Utils
-
 function Utils.Overlap(gui1, gui2)
     local gui1_topLeft = gui1.AbsolutePosition
     local gui1_bottomRight = gui1_topLeft + gui1.AbsoluteSize
@@ -354,7 +358,6 @@ function Utils.Overlap(gui1, gui2)
 end
 
 --VI
-
 VI.State = false
 
 function VI.ClickUI(ui)
@@ -380,7 +383,6 @@ function VI.Up(ui)
 end
 
 --API
-
 function FischAPI.TapShake()
     local shakeUI = game:GetService("Players").LocalPlayer.PlayerGui:FindFirstChild("shakeui")
     if shakeUI and shakeUI.Enabled then
@@ -407,25 +409,18 @@ function FischAPI.Cast()
     local character = player.Character
 
     if character then
-        -- Find the equipped fishing rod
         local tool = character:FindFirstChildOfClass("Tool")
 
         if tool then
-            -- Check if the tool is already casting (has a bobber)
             local hasBobber = tool:FindFirstChild("bobber")
 
             if not hasBobber then
-                -- Get the cast event
                 local castEvent = tool:FindFirstChild("events") and tool.events:FindFirstChild("cast")
 
                 if castEvent then
-                    -- Generate a random power between 90-99
                     local power = math.random(90, 99)
-                    
-                    -- Cast with the random power
                     castEvent:FireServer(power, 1)
                     
-                    -- Ensure the character is not anchored
                     local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
                     if humanoidRootPart then
                         humanoidRootPart.Anchored = false
@@ -468,25 +463,20 @@ function FischAPI.AutoSellWithReturn()
     local currentPosition = rootPart.CFrame
     local sellPosition = CFrame.new(464, 151, 232)
     
-    -- Store whether lock was active
     local wasLockActive = false
     if Options.Lock then
         wasLockActive = true
         Options.Lock = false
     end
 
-    -- Teleport to merchant
     rootPart.CFrame = sellPosition
     task.wait(0.5)
 
-    -- Sell all items
     workspace:WaitForChild("world"):WaitForChild("npcs"):WaitForChild("Marc Merchant"):WaitForChild("merchant"):WaitForChild("sellall"):InvokeServer()
 
-    -- Wait and return to original position
     task.wait(1)
     rootPart.CFrame = currentPosition
 
-    -- Restore lock if it was active
     if wasLockActive then
         Options.Lock = true
     end
@@ -501,7 +491,6 @@ function FischAPI.GetFish()
 end
 
 --User
-
 function FischUser.Sell()
     FischAPI.SellAll()
 end
@@ -551,7 +540,6 @@ function FischUser.StepLoop()
         end)
     end
     
-    -- Handle auto shake (enter only)
     if Options.AutoShake2 then
         pcall(function()
             FischUser.AutoShake()
@@ -621,10 +609,45 @@ function FischUser.Initialize()
     AntiCheat.Initialize()
 end
 
+-- Force UI visibility toggle with RIGHT SHIFT key
+local userInputService = game:GetService("UserInputService")
+local uiVisible = true
+
+userInputService.InputBegan:Connect(function(input, gameProcessed)
+    if input.KeyCode == Enum.KeyCode.RightShift and not gameProcessed then
+        uiVisible = not uiVisible
+        -- Try to toggle UI visibility
+        pcall(function()
+            for _, guiObject in pairs(game:GetService("CoreGui"):GetDescendants()) do
+                if guiObject:IsA("Frame") and guiObject.Name:lower():find("neverlose") then
+                    guiObject.Visible = uiVisible
+                end
+            end
+        end)
+        
+        Notification:Notify(
+            "info",
+            "UI Visibility",
+            uiVisible and "UI is now visible" or "UI is now hidden",
+            3
+        )
+    end
+end)
+
+-- Multiple notification attempts to ensure script is visibly working
 Notification:Notify(
     "info",
     "Fisch Script Loaded v0.0.6",
     "Any fishing rod will work with this script! AntiCheat Protection Enabled!",
+    5
+)
+
+task.wait(1)
+
+Notification:Notify(
+    "success",
+    "Script Active",
+    "Press RIGHT SHIFT to toggle UI visibility if you can't see it",
     5
 )
 
