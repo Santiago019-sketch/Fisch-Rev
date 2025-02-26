@@ -1,0 +1,581 @@
+local FischAPI = {}
+
+local VIM = game:GetService("VirtualInputManager")
+local GuiService = game:GetService("GuiService")
+local LocalPlayer = game.Players.LocalPlayer
+
+local VI = {}
+
+local Options = {
+    AutoShake2 = false, -- Only Enter shake mode
+    AutoShakeDelay = 0.3,
+    AutoMinigame = false,
+    AutoMinigameBlatant = false,
+    AutoCast = false,
+    PerfectCast = false,
+    FloatOnWater = false,
+    Lock = false,
+    AutoSell = false,
+    AutoSellDelay = 3
+}
+
+local Internal = {
+    AutoMinigameDownPerUp = 2,
+    AutoMinigameDownPerUpInternal = 2,
+    Timer = 301,
+    FloatPart = nil,
+    LockedPosition = nil,
+    CurrentRod = nil,
+    SelectedIsland = "Moosewood",
+    SelectedWorldEvent = "Traveler Merchant"
+}
+
+local Utils = {}
+
+local UI = {}
+
+local CalibrationData = {}
+
+local FischUser = {}
+
+local NEVERLOSE = loadstring(game:HttpGet("https://raw.githubusercontent.com/IayZBoy/TrollScripts/main/randomuilib.lua"))()
+
+local Notification = NEVERLOSE.Notification();
+
+NEVERLOSE:Theme("dark")
+
+--UI
+
+for Setting, Value in pairs(Options) do
+    if type(Value) == "boolean" then
+        UI[Setting] = function(Val)
+            Options[Setting] = Val
+        end
+    end
+end
+
+function UI.Initialize()
+    --UI
+
+    local Windows = NEVERLOSE:AddWindow("oggsunny","oggsunny - Fisch - V0.0.5 - discord.gg/fichy47")
+
+    local FishingTab = Windows:AddTab("Fishing", "earth")
+
+    local Interactions = Windows:AddTab("Interactions", "list")
+
+    local AreaTeleportsTab = Windows:AddTab("Area Teleports", "earth")
+
+    local MechanicsSection = FishingTab:AddSection("Mechanics", "left")
+
+    local Convenience = FishingTab:AddSection("Convenience", "left")
+
+    local CreditsSection = FishingTab:AddSection("Credits", "right")
+
+    local Teleports = AreaTeleportsTab:AddSection("Teleports", "left")
+    
+    -- Add new sections for enhanced teleports
+    local IslandTeleports = AreaTeleportsTab:AddSection("Island Teleports", "right")
+    local EventTeleports = AreaTeleportsTab:AddSection("Event Teleports", "right")
+    local SpecialTeleports = AreaTeleportsTab:AddSection("Special Teleports", "left")
+    local AdditionalTeleports = AreaTeleportsTab:AddSection("Additional Teleports", "left")
+
+    local Actions = Interactions:AddSection("Actions", "left")
+
+    -- Added Auto Sell section
+    local SellSection = Interactions:AddSection("Auto Sell", "right")
+
+    SellSection:AddToggle("Auto Sell", false, UI.AutoSell)
+    
+    SellSection:AddSlider("Auto Sell Delay (min)", 1, 30, 3, 1, function(value)
+        Options.AutoSellDelay = value
+    end)
+
+    SellSection:AddButton("Quick Sell", function()
+        game:GetService("ReplicatedStorage").events.Sell:InvokeServer()
+    end)
+
+    Actions:AddButton("Sell All", FischUser.Sell)
+
+    Convenience:AddToggle("Float On Water", false, UI.FloatOnWater)
+
+    Convenience:AddLabel("Turn ON to walk around and choose spot.")
+    
+    Convenience:AddLabel("Turn OFF to choose your position.")
+
+    Convenience:AddToggle("Lock Position", false, function(v) 
+        Internal.LockedPosition = game.Players.LocalPlayer.Character.HumanoidRootPart.Position
+        UI.Lock(v) 
+    end)
+
+    -- Keeping only Enter Shake
+    MechanicsSection:AddToggle("Auto Shake (Enter)", false, UI.AutoShake2)
+    
+    MechanicsSection:AddSlider("Auto Shake Delay", 0.1, 1, 0.3, 0.1, function(value)
+        Options.AutoShakeDelay = value
+    end)
+
+    MechanicsSection:AddToggle("Auto Reel (Blatant)", false, UI.AutoMinigameBlatant)
+
+    MechanicsSection:AddToggle("Auto Cast", false, UI.AutoCast)
+
+    for Place, Position in pairs(CalibrationData.Positions) do
+        Teleports:AddButton(
+            "Teleport to "..Place,
+            function()
+                game.Players.LocalPlayer.Character.HumanoidRootPart.Position = Position
+            end
+        )
+    end
+    
+    -- Add Island Teleport Dropdown
+    local IslandOptions = {"Moosewood", "Roslit Bay", "Terrapin", "Sunstone", "Statue of Sovereignty", 
+                          "Mushgrove Swamp", "Snowcap", "Vertigo", "Keepers Altar", "The Arch", "Desolate Deep"}
+    
+    IslandTeleports:AddDropdown("Select Island", IslandOptions, "Moosewood", function(value)
+        Internal.SelectedIsland = value
+    end)
+    
+    IslandTeleports:AddButton("Teleport to Island", function()
+        if Internal.SelectedIsland == "Moosewood" then
+            LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(382.893, 134.501, 242.632)
+        elseif Internal.SelectedIsland == "Roslit Bay" then
+            LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(game:GetService("Workspace").world.spawns.TpSpots.roslit.Position)
+        elseif Internal.SelectedIsland == "Terrapin" then
+            LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(-146.693, 144.931, 1903.16)
+        elseif Internal.SelectedIsland == "Sunstone" then
+            LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(game:GetService("Workspace").world.spawns.TpSpots.sunstone.Position)
+        elseif Internal.SelectedIsland == "Statue of Sovereignty" then
+            LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(game:GetService("Workspace").world.spawns.TpSpots.statue.Position)
+        elseif Internal.SelectedIsland == "Mushgrove Swamp" then
+            LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(game:GetService("Workspace").world.spawns.TpSpots.mushgrove.Position)
+        elseif Internal.SelectedIsland == "Snowcap" then
+            LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(game:GetService("Workspace").world.spawns.TpSpots.snowcap.Position)
+        elseif Internal.SelectedIsland == "Vertigo" then
+            LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(game:GetService("Workspace").world.spawns.TpSpots.vertigo.Position)
+        elseif Internal.SelectedIsland == "Keepers Altar" then
+            LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(1317.79, -805.292, -111.615)
+        elseif Internal.SelectedIsland == "The Arch" then
+            LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(game:GetService("Workspace").world.spawns.TpSpots.arch.Position)
+        elseif Internal.SelectedIsland == "Desolate Deep" then
+            LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(-1525.85986328125, -234.70187377929688, -2856.092041015625)
+        end
+        Notification:Notify("info", "Teleported", "Successfully teleported to " .. Internal.SelectedIsland, 3)
+    end)
+    
+    -- Add World Event Teleport Dropdown
+    local WorldEventOptions = {"Traveler Merchant", "Strange Whirlpool"}
+    
+    EventTeleports:AddDropdown("Select World Event", WorldEventOptions, "Traveler Merchant", function(value)
+        Internal.SelectedWorldEvent = value
+    end)
+    
+    EventTeleports:AddButton("Teleport to World Event", function()
+        if Internal.SelectedWorldEvent == "Traveler Merchant" then
+            LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(game.Workspace.active["Merchant Boat"].Boat["Merchant Boat"].r.HandlesR.Position)
+        elseif Internal.SelectedWorldEvent == "Strange Whirlpool" then
+            local offset = Vector3.new(0, 125, 0)
+            LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(game.Workspace.zones.fishing.Isonade.Position + offset)
+        end
+        Notification:Notify("info", "Teleported", "Successfully teleported to " .. Internal.SelectedWorldEvent, 3)
+    end)
+    
+    -- Add Special Teleport Button
+    SpecialTeleports:AddButton("Teleport to Trident", function()
+        LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(-1483.99304, -225.975464, -2201.59741)
+        Notification:Notify("info", "Teleported", "Successfully teleported to the Trident", 3)
+    end)
+    
+    -- Add additional teleports from pzgdCbNN.txt
+    AdditionalTeleports:AddButton("Teleport to Ancient Isle", function()
+        local targetPart = workspace.world.map["Ancient Isle"].Terrain:GetChildren()[305]
+        if targetPart then
+            LocalPlayer.Character.HumanoidRootPart.CFrame = targetPart.CFrame
+            Notification:Notify("info", "Teleported", "Successfully teleported to Ancient Isle", 3)
+        else
+            Notification:Notify("error", "Failed", "Ancient Isle location not found", 3)
+        end
+    end)
+    
+    AdditionalTeleports:AddButton("Teleport to Roslit Hamlet", function()
+        local teleportLocation = workspace.zones.player:FindFirstChild("Roslit Hamlet")
+        if teleportLocation then
+            LocalPlayer.Character:SetPrimaryPartCFrame(teleportLocation.CFrame)
+            Notification:Notify("info", "Teleported", "Successfully teleported to Roslit Hamlet", 3)
+        else
+            Notification:Notify("error", "Failed", "Roslit Hamlet location not found", 3)
+        end
+    end)
+    
+    AdditionalTeleports:AddButton("Teleport to Forsaken Shores", function()
+        local location = workspace.zones.player:FindFirstChild("Forsaken Shores")
+        if location then
+            game:GetService("ReplicatedStorage").packages.Net:FindFirstChild("RF/SetZone"):InvokeServer(location)
+            Notification:Notify("info", "Teleported", "Successfully teleported to Forsaken Shores", 3)
+        else
+            Notification:Notify("error", "Failed", "Forsaken Shores location not found", 3)
+        end
+    end)
+    
+    AdditionalTeleports:AddButton("Teleport to The Depths", function()
+        local location = workspace.zones.player:FindFirstChild("The Depths")
+        if location then
+            game:GetService("ReplicatedStorage").packages.Net:FindFirstChild("RF/SetZone"):InvokeServer(location)
+            Notification:Notify("info", "Teleported", "Successfully teleported to The Depths", 3)
+        else
+            Notification:Notify("error", "Failed", "The Depths location not found", 3)
+        end
+    end)
+    
+    AdditionalTeleports:AddButton("Teleport to Brine Pool", function()
+        local location = workspace.zones.player:FindFirstChild("Brine Pool")
+        if location then
+            game:GetService("ReplicatedStorage").packages.Net:FindFirstChild("RF/SetZone"):InvokeServer(location)
+            Notification:Notify("info", "Teleported", "Successfully teleported to Brine Pool", 3)
+        else
+            Notification:Notify("error", "Failed", "Brine Pool location not found", 3)
+        end
+    end)
+
+    Actions:AddButton("Open/Close Boat UI", function() 
+        FischUser.OpenBoatUI()
+    end)
+
+    CreditsSection:AddLabel("Fichy47 Script by dynamicarrays")
+    CreditsSection:AddButton(
+        "Discord",
+        function()
+            setclipboard("discord.gg/fichy47")
+        end
+    )
+
+    local AbundanceZoneSection = FishingTab:AddSection("Abundances", "right")
+    
+    local Ab = {}
+
+    local Ab2 = {}
+
+    local Choice = nil
+
+    local LabeledChance = nil
+
+    local AbundanceChoice = AbundanceZoneSection:AddDropdown("Abundances", Ab, "Loading", function(D)
+        LabeledChance:Text("Chance: "..tostring(Ab2[D].Chance).."%")
+        Choice = Ab2[D]
+    end)
+
+    LabeledChance = AbundanceZoneSection:AddLabel("Chance: 0%")
+
+    local GotoAbundance = AbundanceZoneSection:AddButton("Go to Abundance", function() 
+        game.Players.LocalPlayer.Character.HumanoidRootPart.Position = Vector3.new(Choice.Position.X, 137.77, Choice.Position.Z)
+    end)
+
+    local FishRadarPlaces = {}
+
+    local I = 0
+
+    while I < 100 do
+        I = I + 1
+        FishingTab:AddSection("Scrolling Space", "right")
+    end
+
+    spawn(function()
+        while task.wait(5) do
+            local Places = FischAPI.GetAllAbundanceZones()
+            Ab2 = Places
+            Ab = {}
+            for Fish, Info in pairs(Ab2) do
+                table.insert(Ab, Fish)
+            end
+            AbundanceChoice:Refresh(Ab)
+        end
+    end)
+end
+
+--Utils
+
+function Utils.Overlap(gui1, gui2)
+    local gui1_topLeft = gui1.AbsolutePosition
+    local gui1_bottomRight = gui1_topLeft + gui1.AbsoluteSize
+
+    local gui2_topLeft = gui2.AbsolutePosition
+    local gui2_bottomRight = gui2_topLeft + gui2.AbsoluteSize
+    
+    return ((gui1_topLeft.x < gui2_bottomRight.x and gui1_bottomRight.x > gui2_topLeft.x) and (gui1_topLeft.y < gui2_bottomRight.y and gui1_bottomRight.y > gui2_topLeft.y))
+end
+
+--VI
+
+VI.State = false
+
+function VI.ClickUI(ui)
+    local x = ui.AbsolutePosition.X + (ui.AbsoluteSize.X / 2)
+    local y = ui.AbsolutePosition.Y + (ui.AbsoluteSize.Y / 2)
+    VIM:SendMouseButtonEvent(x, y, 0, true, game, 0)
+    task.wait(0.05)
+    VIM:SendMouseButtonEvent(x, y, 0, false, game, 0)
+end
+
+function VI.Down(ui)
+    VI.State = true
+    local x = ui.AbsolutePosition.X + (ui.AbsoluteSize.X / 2)
+    local y = ui.AbsolutePosition.Y + (ui.AbsoluteSize.Y / 2)
+    VIM:SendMouseButtonEvent(x, y, 0, true, game, 0)
+end
+
+function VI.Up(ui)
+    VI.State = false
+    local x = ui.AbsolutePosition.X + (ui.AbsoluteSize.X / 2)
+    local y = ui.AbsolutePosition.Y + (ui.AbsoluteSize.Y / 2)
+    VIM:SendMouseButtonEvent(x, y, 0, false, game, 0)
+end
+
+--API
+
+function FischAPI.TapShake()
+    local shakeUI = game:GetService("Players").LocalPlayer.PlayerGui:FindFirstChild("shakeui")
+    if shakeUI and shakeUI.Enabled then
+        local safezone = shakeUI:FindFirstChild("safezone")
+        if safezone then
+            local button = safezone:FindFirstChild("button")
+            if button and button:IsA("ImageButton") and button.Visible then
+                if Options.AutoShake2 then
+                    GuiService.SelectedObject = button
+                    VIM:SendKeyEvent(true, Enum.KeyCode.Return, false, game)
+                    VIM:SendKeyEvent(false, Enum.KeyCode.Return, false, game)
+                end
+            end
+        end
+    end
+end
+
+function FischAPI.InstantReel()
+    game:GetService("ReplicatedStorage").events.reelfinished:FireServer(100, true)
+end
+
+function FischAPI.Cast()
+    local player = game.Players.LocalPlayer
+    local character = player.Character
+
+    if character then
+        -- Find the equipped fishing rod
+        local tool = character:FindFirstChildOfClass("Tool")
+
+        if tool then
+            -- Check if the tool is already casting (has a bobber)
+            local hasBobber = tool:FindFirstChild("bobber")
+
+            if not hasBobber then
+                -- Get the cast event
+                local castEvent = tool:FindFirstChild("events") and tool.events:FindFirstChild("cast")
+
+                if castEvent then
+                    -- Generate a random power between 90-99
+                    local power = math.random(90, 99)
+                    
+                    -- Cast with the random power
+                    castEvent:FireServer(power, 1)
+                    
+                    -- Ensure the character is not anchored
+                    local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+                    if humanoidRootPart then
+                        humanoidRootPart.Anchored = false
+                    end
+                end
+            end
+        end
+    end
+end
+
+function FischAPI.GetAllAbundanceZones()
+    local Abundances = {}
+    for i, Zone in pairs(game:GetService("Workspace").zones.fishing:GetChildren()) do
+        local Info = {}
+        if Zone:FindFirstChild("Abundance") then
+            if Zone:FindFirstChild("Abundance"):FindFirstChild("Chance") then
+                Info.Chance = Zone.Abundance.Chance.Value
+            else
+                Info.Chance = 1
+            end
+            Info.Position = Zone.Position
+            if Abundances[Zone.Abundance.Value] == nil then
+                Abundances[Zone.Abundance.Value] = Info
+            elseif Abundances[Zone.Abundance.Value].Chance < Info.Chance then
+                Abundances[Zone.Abundance.Value] = Info
+            end
+        end
+    end
+    return Abundances
+end
+
+function FischAPI.SellAll()
+    workspace.world.npcs["Marc Merchant"].merchant.sellall:InvokeServer()
+end
+
+function FischAPI.AutoSellWithReturn()
+    local player = game.Players.LocalPlayer
+    local character = player.Character or player.CharacterAdded:Wait()
+    local rootPart = character:WaitForChild("HumanoidRootPart")
+    local currentPosition = rootPart.CFrame
+    local sellPosition = CFrame.new(464, 151, 232)
+    
+    -- Store whether lock was active
+    local wasLockActive = false
+    if Options.Lock then
+        wasLockActive = true
+        Options.Lock = false
+    end
+
+    -- Teleport to merchant
+    rootPart.CFrame = sellPosition
+    task.wait(0.5)
+
+    -- Sell all items
+    workspace:WaitForChild("world"):WaitForChild("npcs"):WaitForChild("Marc Merchant"):WaitForChild("merchant"):WaitForChild("sellall"):InvokeServer()
+
+    -- Wait and return to original position
+    task.wait(1)
+    rootPart.CFrame = currentPosition
+
+    -- Restore lock if it was active
+    if wasLockActive then
+        Options.Lock = true
+    end
+end
+
+function FischAPI.GetFish()
+    local Text = "Items/Fish:\n"
+    for i, v in pairs(game.Players.LocalPlayer.Backpack:GetChildren()) do
+        Text=Text..v.Name.."\n"
+    end
+    return Text
+end
+
+--User
+
+function FischUser.Sell()
+    FischAPI.SellAll()
+end
+
+function FischUser.AutoShake()
+    task.wait(Options.AutoShakeDelay)
+    FischAPI.TapShake()
+end
+
+function FischUser.OpenBoatUI()
+    game:GetService("Players").LocalPlayer.PlayerGui.hud.safezone.shipwright.Visible = not game:GetService("Players").LocalPlayer.PlayerGui.hud.safezone.shipwright.Visible
+end
+
+function FischUser.LockPosition()
+    game.Players.LocalPlayer.Character.HumanoidRootPart.Position = Internal.LockedPosition
+end
+
+function FischUser.FloatOnWater()
+    pcall(function()
+        Internal.FloatPart:Destroy()
+    end)
+    Internal.FloatPart = Instance.new("Part", workspace)
+    Internal.FloatPart.Anchored = true
+    Internal.FloatPart.Size = Vector3.new(10,1,10)
+    Internal.FloatPart.Position = Vector3.new(game.Players.LocalPlayer.Character.HumanoidRootPart.Position.X, 133.77, game.Players.LocalPlayer.Character.HumanoidRootPart.Position.Z)
+    game.Players.LocalPlayer.Character.HumanoidRootPart.Position = Vector3.new(game.Players.LocalPlayer.Character.HumanoidRootPart.Position.X, 150, game.Players.LocalPlayer.Character.HumanoidRootPart.Position.Z)
+end
+
+function FischUser.AutoReel()
+    FischAPI.InstantReel()
+end
+
+function FischUser.AutoCast()
+    FischAPI.Cast()
+end
+
+function FischUser.AutoSellLoop()
+    if Options.AutoSell then
+        FischAPI.AutoSellWithReturn()
+    end
+end
+
+function FischUser.StepLoop()
+    if Options.FloatOnWater == true then
+        pcall(function()
+            FischUser.FloatOnWater()
+        end)
+    end
+    
+    -- Handle auto shake (enter only)
+    if Options.AutoShake2 then
+        pcall(function()
+            FischUser.AutoShake()
+        end)
+    end
+    
+    if Options.AutoMinigameBlatant == true then
+        pcall(function()
+            FischUser.AutoReel()
+        end)
+    end
+end
+
+function FischUser.Heartbeat()
+    -- Empty now that megaladon hunting is removed
+end
+
+function FischUser.OneStep()
+    -- Empty for now
+end
+
+function FischUser.Relaxed1Sec()
+    if Options.AutoCast == true then
+        pcall(function()
+            if Options.Lock == true then
+                FischUser.LockPosition()
+            end
+            FischUser.AutoCast()
+        end)
+    end
+end
+
+function FischUser.Initialize()
+    spawn(function()
+        game:GetService("RunService").RenderStepped:Connect(function()
+            FischUser.Heartbeat()
+        end)
+    end)
+    
+    spawn(function()
+        FischUser.OneStep()
+    end)
+    
+    spawn(function()
+        while task.wait(0.005) do
+            pcall(function()
+                FischUser.StepLoop()
+            end)
+        end
+    end)
+    
+    spawn(function()
+        while task.wait(1) do
+            FischUser.Relaxed1Sec()
+        end
+    end)
+    
+    spawn(function()
+        while task.wait(Options.AutoSellDelay * 60) do
+            pcall(function()
+                FischUser.AutoSellLoop()
+            end)
+        end
+    end)
+end
+
+Notification:Notify(
+    "info",
+    "Fisch Script Loaded",
+    "Any fishing rod will work with this script!",
+    5
+)
+
+FischUser.Initialize()
+UI.Initialize()
+
+return FischAPI
