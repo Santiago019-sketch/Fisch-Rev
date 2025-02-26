@@ -196,6 +196,7 @@ function AntiCheat.MonitorPlayerActions()
     rayParams.FilterType = Enum.RaycastFilterType.Blacklist
     rayParams.FilterDescendantsInstances = {LocalPlayer.Character}
     
+    local rootPart = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
     if rootPart then
         local rayResult = workspace:Raycast(rootPart.Position, Vector3.new(0, -10, 0), rayParams)
         if not rayResult and rootPart.Position.Y > 140 and not Options.FloatOnWater then
@@ -243,7 +244,7 @@ function AntiCheat.TakeAction()
         -- Reset detection count after reporting
         Internal.DetectionCount = 0
     end)
-}
+end -- Fixed: Added missing closing bracket
 
 function AntiCheat.StartMonitoring()
     spawn(function()
@@ -264,7 +265,7 @@ function AntiCheat.StartMonitoring()
             end
         end
     end)
-}
+end
 
 -- New function to detect suspicious script execution
 function AntiCheat.MonitorScriptExecution()
@@ -282,7 +283,7 @@ function AntiCheat.MonitorScriptExecution()
             AntiCheat.ReportSuspiciousActivity("Unusual script activity detected")
         end
     end
-}
+end
 
 -- Fixed UI initialization
 function UI.Initialize()
@@ -698,7 +699,7 @@ function FischUser.Relaxed1Sec()
             FischUser.AutoCast()
         end)
     end
-}
+end -- Fixed: Added missing closing bracket
 
 function FischUser.Initialize()
     -- Set up the main loops
@@ -750,7 +751,7 @@ function FischUser.Initialize()
             UI.Initialize()
         end)
     end)
-}
+end
 
 -- Added UI initialization error handling
 pcall(function()
