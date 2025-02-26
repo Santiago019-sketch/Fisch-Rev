@@ -25,9 +25,7 @@ local Internal = {
     Timer = 301,
     FloatPart = nil,
     LockedPosition = nil,
-    CurrentRod = nil,
-    SelectedIsland = "Moosewood",
-    SelectedWorldEvent = "Traveler Merchant"
+    CurrentRod = nil
 }
 
 local Utils = {}
@@ -72,12 +70,6 @@ function UI.Initialize()
     local CreditsSection = FishingTab:AddSection("Credits", "right")
 
     local Teleports = AreaTeleportsTab:AddSection("Teleports", "left")
-    
-    -- Add new sections for enhanced teleports
-    local IslandTeleports = AreaTeleportsTab:AddSection("Island Teleports", "right")
-    local EventTeleports = AreaTeleportsTab:AddSection("Event Teleports", "right")
-    local SpecialTeleports = AreaTeleportsTab:AddSection("Special Teleports", "left")
-    local AdditionalTeleports = AreaTeleportsTab:AddSection("Additional Teleports", "left")
 
     local Actions = Interactions:AddSection("Actions", "left")
 
@@ -118,75 +110,63 @@ function UI.Initialize()
 
     MechanicsSection:AddToggle("Auto Cast", false, UI.AutoCast)
 
-    for Place, Position in pairs(CalibrationData.Positions) do
-        Teleports:AddButton(
-            "Teleport to "..Place,
-            function()
-                game.Players.LocalPlayer.Character.HumanoidRootPart.Position = Position
-            end
-        )
-    end
-    
-    -- Add Island Teleport Dropdown
-    local IslandOptions = {"Moosewood", "Roslit Bay", "Terrapin", "Sunstone", "Statue of Sovereignty", 
-                          "Mushgrove Swamp", "Snowcap", "Vertigo", "Keepers Altar", "The Arch", "Desolate Deep"}
-    
-    IslandTeleports:AddDropdown("Select Island", IslandOptions, "Moosewood", function(value)
-        Internal.SelectedIsland = value
+    -- Adding all teleport locations in a simple list
+    Teleports:AddButton("Teleport to Moosewood", function()
+        LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(382.893, 134.501, 242.632)
+        Notification:Notify("info", "Teleported", "Successfully teleported to Moosewood", 3)
     end)
-    
-    IslandTeleports:AddButton("Teleport to Island", function()
-        if Internal.SelectedIsland == "Moosewood" then
-            LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(382.893, 134.501, 242.632)
-        elseif Internal.SelectedIsland == "Roslit Bay" then
-            LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(game:GetService("Workspace").world.spawns.TpSpots.roslit.Position)
-        elseif Internal.SelectedIsland == "Terrapin" then
-            LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(-146.693, 144.931, 1903.16)
-        elseif Internal.SelectedIsland == "Sunstone" then
-            LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(game:GetService("Workspace").world.spawns.TpSpots.sunstone.Position)
-        elseif Internal.SelectedIsland == "Statue of Sovereignty" then
-            LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(game:GetService("Workspace").world.spawns.TpSpots.statue.Position)
-        elseif Internal.SelectedIsland == "Mushgrove Swamp" then
-            LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(game:GetService("Workspace").world.spawns.TpSpots.mushgrove.Position)
-        elseif Internal.SelectedIsland == "Snowcap" then
-            LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(game:GetService("Workspace").world.spawns.TpSpots.snowcap.Position)
-        elseif Internal.SelectedIsland == "Vertigo" then
-            LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(game:GetService("Workspace").world.spawns.TpSpots.vertigo.Position)
-        elseif Internal.SelectedIsland == "Keepers Altar" then
-            LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(1317.79, -805.292, -111.615)
-        elseif Internal.SelectedIsland == "The Arch" then
-            LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(game:GetService("Workspace").world.spawns.TpSpots.arch.Position)
-        elseif Internal.SelectedIsland == "Desolate Deep" then
-            LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(-1525.85986328125, -234.70187377929688, -2856.092041015625)
-        end
-        Notification:Notify("info", "Teleported", "Successfully teleported to " .. Internal.SelectedIsland, 3)
+
+    Teleports:AddButton("Teleport to Roslit Bay", function()
+        LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(game:GetService("Workspace").world.spawns.TpSpots.roslit.Position)
+        Notification:Notify("info", "Teleported", "Successfully teleported to Roslit Bay", 3)
     end)
-    
-    -- Add World Event Teleport Dropdown
-    local WorldEventOptions = {"Traveler Merchant", "Strange Whirlpool"}
-    
-    EventTeleports:AddDropdown("Select World Event", WorldEventOptions, "Traveler Merchant", function(value)
-        Internal.SelectedWorldEvent = value
+
+    Teleports:AddButton("Teleport to Terrapin", function()
+        LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(-146.693, 144.931, 1903.16)
+        Notification:Notify("info", "Teleported", "Successfully teleported to Terrapin", 3)
     end)
-    
-    EventTeleports:AddButton("Teleport to World Event", function()
-        if Internal.SelectedWorldEvent == "Traveler Merchant" then
-            LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(game.Workspace.active["Merchant Boat"].Boat["Merchant Boat"].r.HandlesR.Position)
-        elseif Internal.SelectedWorldEvent == "Strange Whirlpool" then
-            local offset = Vector3.new(0, 125, 0)
-            LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(game.Workspace.zones.fishing.Isonade.Position + offset)
-        end
-        Notification:Notify("info", "Teleported", "Successfully teleported to " .. Internal.SelectedWorldEvent, 3)
+
+    Teleports:AddButton("Teleport to Sunstone", function()
+        LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(game:GetService("Workspace").world.spawns.TpSpots.sunstone.Position)
+        Notification:Notify("info", "Teleported", "Successfully teleported to Sunstone", 3)
     end)
-    
-    -- Add Special Teleport Button
-    SpecialTeleports:AddButton("Teleport to Trident", function()
-        LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(-1483.99304, -225.975464, -2201.59741)
-        Notification:Notify("info", "Teleported", "Successfully teleported to the Trident", 3)
+
+    Teleports:AddButton("Teleport to Statue of Sovereignty", function()
+        LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(game:GetService("Workspace").world.spawns.TpSpots.statue.Position)
+        Notification:Notify("info", "Teleported", "Successfully teleported to Statue of Sovereignty", 3)
     end)
-    
-    -- Add additional teleports from pzgdCbNN.txt
-    AdditionalTeleports:AddButton("Teleport to Ancient Isle", function()
+
+    Teleports:AddButton("Teleport to Mushgrove Swamp", function()
+        LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(game:GetService("Workspace").world.spawns.TpSpots.mushgrove.Position)
+        Notification:Notify("info", "Teleported", "Successfully teleported to Mushgrove Swamp", 3)
+    end)
+
+    Teleports:AddButton("Teleport to Snowcap", function()
+        LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(game:GetService("Workspace").world.spawns.TpSpots.snowcap.Position)
+        Notification:Notify("info", "Teleported", "Successfully teleported to Snowcap", 3)
+    end)
+
+    Teleports:AddButton("Teleport to Vertigo", function()
+        LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(game:GetService("Workspace").world.spawns.TpSpots.vertigo.Position)
+        Notification:Notify("info", "Teleported", "Successfully teleported to Vertigo", 3)
+    end)
+
+    Teleports:AddButton("Teleport to Keepers Altar", function()
+        LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(1317.79, -805.292, -111.615)
+        Notification:Notify("info", "Teleported", "Successfully teleported to Keepers Altar", 3)
+    end)
+
+    Teleports:AddButton("Teleport to The Arch", function()
+        LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(game:GetService("Workspace").world.spawns.TpSpots.arch.Position)
+        Notification:Notify("info", "Teleported", "Successfully teleported to The Arch", 3)
+    end)
+
+    Teleports:AddButton("Teleport to Desolate Deep", function()
+        LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(-1525.85986328125, -234.70187377929688, -2856.092041015625)
+        Notification:Notify("info", "Teleported", "Successfully teleported to Desolate Deep", 3)
+    end)
+
+    Teleports:AddButton("Teleport to Ancient Isle", function()
         local targetPart = workspace.world.map["Ancient Isle"].Terrain:GetChildren()[305]
         if targetPart then
             LocalPlayer.Character.HumanoidRootPart.CFrame = targetPart.CFrame
@@ -195,8 +175,8 @@ function UI.Initialize()
             Notification:Notify("error", "Failed", "Ancient Isle location not found", 3)
         end
     end)
-    
-    AdditionalTeleports:AddButton("Teleport to Roslit Hamlet", function()
+
+    Teleports:AddButton("Teleport to Roslit Hamlet", function()
         local teleportLocation = workspace.zones.player:FindFirstChild("Roslit Hamlet")
         if teleportLocation then
             LocalPlayer.Character:SetPrimaryPartCFrame(teleportLocation.CFrame)
@@ -205,8 +185,8 @@ function UI.Initialize()
             Notification:Notify("error", "Failed", "Roslit Hamlet location not found", 3)
         end
     end)
-    
-    AdditionalTeleports:AddButton("Teleport to Forsaken Shores", function()
+
+    Teleports:AddButton("Teleport to Forsaken Shores", function()
         local location = workspace.zones.player:FindFirstChild("Forsaken Shores")
         if location then
             game:GetService("ReplicatedStorage").packages.Net:FindFirstChild("RF/SetZone"):InvokeServer(location)
@@ -215,8 +195,8 @@ function UI.Initialize()
             Notification:Notify("error", "Failed", "Forsaken Shores location not found", 3)
         end
     end)
-    
-    AdditionalTeleports:AddButton("Teleport to The Depths", function()
+
+    Teleports:AddButton("Teleport to The Depths", function()
         local location = workspace.zones.player:FindFirstChild("The Depths")
         if location then
             game:GetService("ReplicatedStorage").packages.Net:FindFirstChild("RF/SetZone"):InvokeServer(location)
@@ -225,8 +205,8 @@ function UI.Initialize()
             Notification:Notify("error", "Failed", "The Depths location not found", 3)
         end
     end)
-    
-    AdditionalTeleports:AddButton("Teleport to Brine Pool", function()
+
+    Teleports:AddButton("Teleport to Brine Pool", function()
         local location = workspace.zones.player:FindFirstChild("Brine Pool")
         if location then
             game:GetService("ReplicatedStorage").packages.Net:FindFirstChild("RF/SetZone"):InvokeServer(location)
@@ -234,6 +214,22 @@ function UI.Initialize()
         else
             Notification:Notify("error", "Failed", "Brine Pool location not found", 3)
         end
+    end)
+
+    Teleports:AddButton("Teleport to Traveler Merchant", function()
+        LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(game.Workspace.active["Merchant Boat"].Boat["Merchant Boat"].r.HandlesR.Position)
+        Notification:Notify("info", "Teleported", "Successfully teleported to Traveler Merchant", 3)
+    end)
+
+    Teleports:AddButton("Teleport to Strange Whirlpool", function()
+        local offset = Vector3.new(0, 125, 0)
+        LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(game.Workspace.zones.fishing.Isonade.Position + offset)
+        Notification:Notify("info", "Teleported", "Successfully teleported to Strange Whirlpool", 3)
+    end)
+
+    Teleports:AddButton("Teleport to Trident", function()
+        LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(-1483.99304, -225.975464, -2201.59741)
+        Notification:Notify("info", "Teleported", "Successfully teleported to the Trident", 3)
     end)
 
     Actions:AddButton("Open/Close Boat UI", function() 
