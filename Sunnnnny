@@ -19,7 +19,6 @@ local Options = {
     Lock = false,
     AutoSell = false,
     AutoSellDelay = 3
-    -- Removed AnticheatEnabled option
 }
 
 local Internal = {
@@ -33,14 +32,12 @@ local Internal = {
     DetectionCount = 0,
     PreviousPosition = nil,
     UILoaded = false
-    -- Removed FileHashes
 }
 
 local Utils = {}
 local UI = {}
 local CalibrationData = {}
 local FischUser = {}
--- Removed AntiCheat table
 
 -- Ensure NEVERLOSE library is loaded properly with error handling
 local NEVERLOSE = nil
@@ -101,20 +98,17 @@ for Setting, Value in pairs(Options) do
     end
 end
 
--- Removed all AntiCheat functions
-
 -- Fixed UI initialization
 function UI.Initialize()
     if Internal.UILoaded then return end
     
     local success, err = pcall(function()
         --UI
-        local Windows = NEVERLOSE:AddWindow("oggsunny","oggsunny - Fisch - V0.0.7 - discord.gg/fichy47")
+        local Windows = NEVERLOSE:AddWindow("oggsunny","oggsunny - Fisch - V0.0.7 - credit to oggsunny")
 
         local FishingTab = Windows:AddTab("Fishing", "earth")
         local Interactions = Windows:AddTab("Interactions", "list")
         local AreaTeleportsTab = Windows:AddTab("Area Teleports", "earth")
-        -- Removed SecurityTab
 
         local MechanicsSection = FishingTab:AddSection("Mechanics", "left")
         local Convenience = FishingTab:AddSection("Convenience", "left")
@@ -122,8 +116,6 @@ function UI.Initialize()
         local Teleports = AreaTeleportsTab:AddSection("Teleports", "left")
         local Actions = Interactions:AddSection("Actions", "left")
         
-        -- Removed SecuritySection entirely
-
         -- Auto Sell section
         local SellSection = Interactions:AddSection("Auto Sell", "right")
         SellSection:AddToggle("Auto Sell", false, UI.AutoSell)
@@ -151,13 +143,74 @@ function UI.Initialize()
         MechanicsSection:AddToggle("Auto Reel (Blatant)", false, UI.AutoMinigameBlatant)
         MechanicsSection:AddToggle("Auto Cast", false, UI.AutoCast)
 
-        -- Teleport locations
-        Teleports:AddButton("Teleport to Moosewood", function()
-            LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(382.893, 134.501, 242.632)
-            Notification:Notify("info", "Teleported", "Successfully teleported to Moosewood", 3)
+        -- Teleport locations from pzgdCbNN.txt
+        Teleports:AddButton("Ancient Isle Teleport", function()
+            local player = game.Players.LocalPlayer
+            local character = player.Character or player.CharacterAdded:Wait()
+            local targetPart = workspace.world.map["Ancient Isle"].Terrain:GetChildren()[305]
+            
+            if targetPart and character then
+                local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+                if humanoidRootPart then
+                    humanoidRootPart.CFrame = targetPart.CFrame
+                    Notification:Notify("info", "Teleported", "Successfully teleported to Ancient Isle", 3)
+                else
+                    Notification:Notify("error", "Error", "HumanoidRootPart not found!", 3)
+                end
+            else
+                Notification:Notify("error", "Error", "Target location not found!", 3)
+            end
         end)
         
-        -- Add all other teleport locations here...
+        Teleports:AddButton("Roslit Hamlet Teleport", function()
+            local player = game.Players.LocalPlayer
+            local character = player.Character or player.CharacterAdded:Wait()
+            local teleportLocation = workspace.zones.player:FindFirstChild("Roslit Hamlet")
+            
+            if teleportLocation and character then
+                character:SetPrimaryPartCFrame(teleportLocation.CFrame)
+                Notification:Notify("info", "Teleported", "Successfully teleported to Roslit Hamlet", 3)
+            else
+                Notification:Notify("error", "Error", "Teleport location not found!", 3)
+            end
+        end)
+        
+        Teleports:AddButton("Moosewood Teleport", function()
+            local zone = workspace.zones.player:FindFirstChild("Moosewood")
+            if zone and zone:IsA("BasePart") then
+                game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = zone.CFrame
+                Notification:Notify("info", "Teleported", "Successfully teleported to Moosewood", 3)
+            else
+                Notification:Notify("error", "Error", "Zone not found or invalid part", 3)
+            end
+        end)
+        
+        Teleports:AddButton("Forsaken Shores Teleport", function()
+            local args = {
+                [1] = workspace.zones.player:FindFirstChild("Forsaken Shores")
+            }
+            
+            game:GetService("ReplicatedStorage").packages.Net:FindFirstChild("RF/SetZone"):InvokeServer(unpack(args))
+            Notification:Notify("info", "Teleported", "Successfully teleported to Forsaken Shores", 3)
+        end)
+        
+        Teleports:AddButton("The Depths Teleport", function()
+            local args = {
+                [1] = workspace.zones.player:FindFirstChild("The Depths")
+            }
+            
+            game:GetService("ReplicatedStorage").packages.Net:FindFirstChild("RF/SetZone"):InvokeServer(unpack(args))
+            Notification:Notify("info", "Teleported", "Successfully teleported to The Depths", 3)
+        end)
+        
+        Teleports:AddButton("Brine Pool Teleport", function()
+            local args = {
+                [1] = workspace.zones.player:FindFirstChild("Brine Pool")
+            }
+            
+            game:GetService("ReplicatedStorage").packages.Net:FindFirstChild("RF/SetZone"):InvokeServer(unpack(args))
+            Notification:Notify("info", "Teleported", "Successfully teleported to Brine Pool", 3)
+        end)
         
         -- Add merchant teleport
         Teleports:AddButton("Teleport to Merchant", function()
@@ -165,57 +218,24 @@ function UI.Initialize()
             Notification:Notify("info", "Teleported", "Successfully teleported to Merchant", 3)
         end)
 
+        -- Auto Sell button
+        Actions:AddButton("Quick Sell", function()
+            game:GetService("ReplicatedStorage").events.Sell:InvokeServer()
+            Notification:Notify("info", "Sold", "Items sold successfully", 3)
+        end)
+
         Actions:AddButton("Open/Close Boat UI", function() 
             FischUser.OpenBoatUI()
         end)
 
-        CreditsSection:AddLabel("Fichy47 Script by dynamicarrays")
+        CreditsSection:AddLabel("credit to oggsunny")
         CreditsSection:AddButton(
-            "Discord",
+            "Original by oggsunny",
             function()
-                setclipboard("discord.gg/fichy47")
+                setclipboard("oggsunny")
             end
         )
 
-        local AbundanceZoneSection = FishingTab:AddSection("Abundances", "right")
-        local Ab = {}
-        local Ab2 = {}
-        local Choice = nil
-        local LabeledChance = nil
-
-        local AbundanceChoice = AbundanceZoneSection:AddDropdown("Abundances", Ab, "Loading", function(D)
-            LabeledChance:Text("Chance: "..tostring(Ab2[D].Chance).."%")
-            Choice = Ab2[D]
-        end)
-
-        LabeledChance = AbundanceZoneSection:AddLabel("Chance: 0%")
-
-        local GotoAbundance = AbundanceZoneSection:AddButton("Go to Abundance", function() 
-            game.Players.LocalPlayer.Character.HumanoidRootPart.Position = Vector3.new(Choice.Position.X, 137.77, Choice.Position.Z)
-        end)
-
-        -- Create scroll space
-        local I = 0
-        while I < 10 do  -- Reduced from 100 to improve performance
-            I = I + 1
-            FishingTab:AddSection("Scrolling Space", "right")
-        end
-
-        -- Update abundance zones regularly
-        spawn(function()
-            while task.wait(5) do
-                pcall(function()
-                    local Places = FischAPI.GetAllAbundanceZones()
-                    Ab2 = Places
-                    Ab = {}
-                    for Fish, Info in pairs(Ab2) do
-                        table.insert(Ab, Fish)
-                    end
-                    AbundanceChoice:Refresh(Ab)
-                end)
-            end
-        end)
-        
         Internal.UILoaded = true
     end)
     
@@ -320,27 +340,6 @@ function FischAPI.Cast()
             end
         end
     end
-end
-
-function FischAPI.GetAllAbundanceZones()
-    local Abundances = {}
-    for i, Zone in pairs(game:GetService("Workspace").zones.fishing:GetChildren()) do
-        local Info = {}
-        if Zone:FindFirstChild("Abundance") then
-            if Zone:FindFirstChild("Abundance"):FindFirstChild("Chance") then
-                Info.Chance = Zone.Abundance.Chance.Value
-            else
-                Info.Chance = 1
-            end
-            Info.Position = Zone.Position
-            if Abundances[Zone.Abundance.Value] == nil then
-                Abundances[Zone.Abundance.Value] = Info
-            elseif Abundances[Zone.Abundance.Value].Chance < Info.Chance then
-                Abundances[Zone.Abundance.Value] = Info
-            end
-        end
-    end
-    return Abundances
 end
 
 function FischAPI.SellAll()
@@ -525,8 +524,6 @@ function FischUser.Initialize()
         end
     end)
     
-    -- Removed AntiCheat initialization
-    
     -- Initialize UI with delay to ensure game has loaded
     spawn(function()
         wait(2) -- Give game time to fully load
@@ -541,7 +538,7 @@ pcall(function()
     Notification:Notify(
         "info",
         "Fisch Script Loading",
-        "v0.0.7 - AntiCheat Removed for UI Fix",
+        "Script combined - credit to oggsunny",
         5
     )
 end)
@@ -560,7 +557,7 @@ spawn(function()
             Notification:Notify(
                 "info",
                 "UI Loaded",
-                "Interface initialized via backup method",
+                "Interface initialized via backup method - credit to oggsunny",
                 3
             )
         end)
