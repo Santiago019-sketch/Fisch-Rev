@@ -1,572 +1,727 @@
--- Define the main API table
-local FischAPI = {}
+-- Initialize OrionLib
+local OrionLib = loadstring(game:HttpGet("https://raw.githubusercontent.com/shlexware/Orion/main/source"))()
 
--- Initialize services and variables
-local VIM = game:GetService("VirtualInputManager")
-local GuiService = game:GetService("GuiService")
-local LocalPlayer = game.Players.LocalPlayer
+-- Tables
+local npcSpots = {
+    Pierre = CFrame.new(391.554688, 135.139374, 201.789169, 0.999646366, 8.3851468e-08, 0.0265929829, -8.37621386e-08, 1, -4.47308413e-09, -0.0265929829, 2.24401719e-09, 0.999646366),
+    Marc_Merchant = CFrame.new(466.279205, 150.62973, 229.611526, 0.999920189, 8.27198932e-09, 0.0126345614, -8.08574097e-09, 1, -1.47922892e-08, -0.0126345614, 1.46889478e-08, 0.999920189),
+    Appraiser = CFrame.new(447.593506, 150.548141, 207.453278, 0.103214651, -4.20815596e-08, -0.994659126, -1.08765121e-07, 1, -5.35939506e-08, 0.994659126, 1.13715899e-07, 0.103214651),
+    Moosewood_Shipwright = CFrame.new(363.438629, 133.292755, 257.575714, -0.0892863944, 3.38971056e-08, 0.996006012, -1.18595789e-09, 1, -3.41393473e-08, -0.996006012, -4.22940039e-09, -0.0892863944),
+    Moosewood_Angler = CFrame.new(481.167328, 150.501038, 297.51001, -0.973281682, 2.83846968e-09, 0.229614362, 2.49372558e-08, 1, 9.33413062e-08, -0.229614362, 9.65733378e-08, -0.973281682),
+    Magic_Mirror = CFrame.new(-1631.05188, -206.727905, -2784.34692, 0.437779486, 9.6638999e-09, -0.899082363, 3.95465349e-08, 1, 3.000455e-08, 0.899082363, -4.86909677e-08, 0.437779486),
+    Inn_Keeper = CFrame.new(491.730865, 150.700043, 231.795563, 0.0292171109, 9.09130264e-08, 0.999573112, -3.48083411e-08, 1, -8.99344172e-08, -0.999573112, -3.21658575e-08, 0.0292171109),
+    Lantern_Keeper = CFrame.new(654.949951, 164.000061, 264.448669, 0.769711554, -6.87349058e-08, -0.638391793, 1.22325332e-07, 1, 3.98192981e-08, 0.638391793, -1.08740863e-07, 0.769711554),
+    Phineas = CFrame.new(471.818115, 150.693405, 274.184448, -0.895135105, 6.5530152e-08, 0.445795, 9.7514004e-08, 1, 4.88073049e-08, -0.445795, 8.71603874e-08, -0.895135105),
+    Lucas = CFrame.new(451.689148, 181.999878, 174.537659, -0.915829003, 3.55792267e-08, 0.401568472, 4.41387051e-08, 1, 1.20633965e-08, -0.401568472, 2.87727211e-08, -0.915829003),
+    Synph = CFrame.new(561.612, 152.500015, 354.664398, 0.0893546641, -1.10924468e-07, -0.995999873, -1.19482479e-09, 1, -1.11477149e-07, 0.995999873, 1.1151049e-08, 0.0893546641),
+    Daisy = CFrame.new(583.963989, 165.490753, 218.143387, 0.893156648, -3.17912141e-09, 0.449745685, 3.21770077e-09, 1, 6.78629208e-10, -0.449745685, 8.41024861e-10, 0.893156648)
+}
+
+local itemSpots = {
+    Bait_Crate = CFrame.new(384.57513427734375, 135.3519287109375, 337.5340270996094),
+    Carbon_Rod = CFrame.new(454.083618, 150.590073, 225.328827, 0.985374212, -0.170404434, 1.41561031e-07, 1.41561031e-07, 1.7285347e-06, 1, -0.170404434, -0.985374212, 1.7285347e-06),
+    Crab_Cage = CFrame.new(474.803589, 149.664566, 229.49469, -0.721874595, 0, 0.692023814, 0, 1, 0, -0.692023814, 0, -0.721874595),
+    Fast_Rod = CFrame.new(447.183563, 148.225739, 220.187454, 0.981104493, 1.26492232e-05, 0.193478703, -0.0522461236, 0.962867677, 0.264870107, -0.186291039, -0.269973755, 0.944674432),
+    Flimsy_Rod = CFrame.new(471.107697, 148.36171, 229.642441, 0.841614008, 0.0774728209, -0.534493923, 0.00678436086, 0.988063335, 0.153898612, 0.540036798, -0.13314943, 0.831042409),
+    GPS = CFrame.new(517.896729, 149.217636, 284.856842, 7.39097595e-06, -0.719539165, -0.694451928, -1, -7.39097595e-06, -3.01003456e-06, -3.01003456e-06, 0.694451928, -0.719539165),
+    Long_Rod = CFrame.new(485.695038, 171.656326, 145.746109, -0.630167365, -0.776459217, -5.33461571e-06, 5.33461571e-06, -1.12056732e-05, 1, -0.776459217, 0.630167365, 1.12056732e-05),
+    Lucky_Rod = CFrame.new(446.085999, 148.253006, 222.160004, 0.974526405, -0.22305499, 0.0233404674, 0.196993902, 0.901088715, 0.386306256, -0.107199371, -0.371867687, 0.922075212),
+    Plastic_Rod = CFrame.new(454.425385, 148.169739, 229.172424, 0.951755166, 0.0709736273, -0.298537821, -3.42726707e-07, 0.972884834, 0.231290117, 0.306858391, -0.220131472, 0.925948203),
+    Training_Rod = CFrame.new(457.693848, 148.357529, 230.414307, 1, -0, 0, 0, 0.975410998, 0.220393807, -0, -0.220393807, 0.975410998)
+}
+
+-- Services
+local VirtualInputManager = game:GetService("VirtualInputManager")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local HttpService = game:GetService("HttpService")
+local GuiService = game:GetService("GuiService")
 local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
+local Players = game:GetService("Players")
 
-local VI = {}
+-- Locals
+local LocalPlayer = Players.LocalPlayer
+local LocalCharacter = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+local HumanoidRootPart = LocalCharacter:FindFirstChild("HumanoidRootPart")
+local ActiveFolder = Workspace:FindFirstChild("active")
+local FishingZonesFolder = Workspace:FindFirstChild("zones"):WaitForChild("fishing")
+local TpSpotsFolder = Workspace:FindFirstChild("world"):WaitForChild("spawns"):WaitForChild("TpSpots")
+local NpcFolder = Workspace:FindFirstChild("world"):WaitForChild("npcs")
+local PlayerGUI = LocalPlayer:FindFirstChildOfClass("PlayerGui")
+local safePart = Instance.new("Part")
+safePart.Name = "SafeZoneAnchor"
+safePart.Size = Vector3.new(10, 2, 10)
+safePart.CFrame = CFrame.new(0, 1000, 0)
+safePart.Anchored = true
+safePart.CanCollide = true
+safePart.Parent = Workspace
 
--- Define options with default values
-local Options = {
-    AutoShake2 = false, -- Only Enter shake mode
-    AutoShakeDelay = 0.3,
-    AutoMinigame = false,
-    AutoMinigameBlatant = false,
-    AutoCast = false,
-    PerfectCast = false,
-    FloatOnWater = false,
-    Lock = false,
-    AutoSell = false,
-    AutoSellDelay = 3
-}
+local Window = OrionLib:MakeWindow({
+    Name = "Fisch 🗿",
+    HidePremium = false,
+    IntroText = "OggSunny 🗿",
+    SaveConfig = true,
+    ConfigFolder = "Sunny",
+    ConfigName = "Fisch"
+})
 
--- Define internal variables
-local Internal = {
-    AutoMinigameDownPerUp = 2,
-    AutoMinigameDownPerUpInternal = 2,
-    Timer = 301,
-    FloatPart = nil,
-    LockedPosition = nil,
-    CurrentRod = nil,
-    LastSpeedCheck = 0,
-    DetectionCount = 0,
-    PreviousPosition = nil,
-    UILoaded = false
-}
+-- Main Tab
+local MainTab = Window:MakeTab({
+    Name = "Main",
+    Icon = "rbxassetid://4483362458",
+    PremiumOnly = false
+})
 
-local Utils = {}
-local UI = {}
-local CalibrationData = {}
-local FischUser = {}
+local autoCast = false
+local autoCastMode = "Legit"
+local autoCastDelay = 2
+local autoCastConnection, autoCastConnection2
 
--- Ensure NEVERLOSE library is loaded properly with error handling
-local NEVERLOSE = nil
-local success, result = pcall(function()
-    return loadstring(game:HttpGet("https://raw.githubusercontent.com/IayZBoy/TrollScripts/main/randomuilib.lua"))()
-end)
-
-if success then
-    NEVERLOSE = result
-else
-    print("Failed to load UI library: " .. tostring(result))
-    -- Create a basic notification function as fallback
-    local function BasicNotify(title, message)
-        print("[" .. title .. "] " .. message)
-    end
-    NEVERLOSE = {
-        Notification = function()
-            return {
-                Notify = BasicNotify
-            }
-        end,
-        Theme = function() end,
-        AddWindow = function()
-            return {
-                AddTab = function()
-                    return {
-                        AddSection = function()
-                            return {
-                                AddToggle = function() end,
-                                AddSlider = function() end,
-                                AddButton = function() end,
-                                AddLabel = function() end,
-                                AddDropdown = function() return {
-                                    Refresh = function() end,
-                                    Text = function() end
-                                } end
-                            }
-                        end
-                    }
-                end
-            }
-        end
-    }
-end
-
-local Notification = NEVERLOSE.Notification()
-
-if NEVERLOSE.Theme then
-    NEVERLOSE:Theme("dark")
-end
-
--- UI Initialization
-for Setting, Value in pairs(Options) do
-    if type(Value) == "boolean" then
-        UI[Setting] = function(Val)
-            Options[Setting] = Val
-        end
-    end
-end
-
--- Fixed UI initialization
-function UI.Initialize()
-    if Internal.UILoaded then return end
-
-    local success, err = pcall(function()
-        -- Create UI windows and tabs
-        local Windows = NEVERLOSE:AddWindow("oggsunny", "oggsunny - Fisch - V0.0.7 - credit to oggsunny")
-
-        local FishingTab = Windows:AddTab("Fishing", "earth")
-        local Interactions = Windows:AddTab("Interactions", "list")
-        local AreaTeleportsTab = Windows:AddTab("Area Teleports", "earth")
-
-        local MechanicsSection = FishingTab:AddSection("Mechanics", "left")
-        local Convenience = FishingTab:AddSection("Convenience", "left")
-        local CreditsSection = FishingTab:AddSection("Credits", "right")
-        local Teleports = AreaTeleportsTab:AddSection("Teleports", "left")
-        local Actions = Interactions:AddSection("Actions", "left")
-
-        -- Auto Sell section
-        local SellSection = Interactions:AddSection("Auto Sell", "right")
-        SellSection:AddToggle("Auto Sell", false, UI.AutoSell)
-        SellSection:AddSlider("Auto Sell Delay (min)", 1, 30, 3, 1, function(value)
-            Options.AutoSellDelay = value
-        end)
-        SellSection:AddButton("Quick Sell", function()
-            game:GetService("ReplicatedStorage").events.Sell:InvokeServer()
-        end)
-
-        Actions:AddButton("Sell All", FischUser.Sell)
-        Convenience:AddToggle("Float On Water", false, UI.FloatOnWater)
-        Convenience:AddLabel("Turn ON to walk around and choose spot.")
-        Convenience:AddLabel("Turn OFF to choose your position.")
-        Convenience:AddToggle("Lock Position", false, function(v)
-            Internal.LockedPosition = game.Players.LocalPlayer.Character.HumanoidRootPart.Position
-            UI.Lock(v)
-        end)
-
-        -- Core fishing mechanics
-        MechanicsSection:AddToggle("Auto Shake (Enter)", false, UI.AutoShake2)
-        MechanicsSection:AddSlider("Auto Shake Delay", 0.1, 1, 0.3, 0.1, function(value)
-            Options.AutoShakeDelay = value
-        end)
-        MechanicsSection:AddToggle("Auto Reel (Blatant)", false, UI.AutoMinigameBlatant)
-        MechanicsSection:AddToggle("Auto Cast", false, UI.AutoCast)
-
-        -- Teleport locations
-        Teleports:AddButton("Ancient Isle Teleport", function()
-            local player = game.Players.LocalPlayer
-            local character = player.Character or player.CharacterAdded:Wait()
-            local targetPart = workspace.world.map["Ancient Isle"].Terrain:GetChildren()[305]
-
-            if targetPart and character then
-                local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
-                if humanoidRootPart then
-                    humanoidRootPart.CFrame = targetPart.CFrame
-                    Notification:Notify("info", "Teleported", "Successfully teleported to Ancient Isle", 3)
-                else
-                    Notification:Notify("error", "Error", "HumanoidRootPart not found!", 3)
-                end
-            else
-                Notification:Notify("error", "Error", "Target location not found!", 3)
-            end
-        end)
-
-        Teleports:AddButton("Roslit Hamlet Teleport", function()
-            local player = game.Players.LocalPlayer
-            local character = player.Character or player.CharacterAdded:Wait()
-            local teleportLocation = workspace.zones.player:FindFirstChild("Roslit Hamlet")
-
-            if teleportLocation and character then
-                character:SetPrimaryPartCFrame(teleportLocation.CFrame)
-                Notification:Notify("info", "Teleported", "Successfully teleported to Roslit Hamlet", 3)
-            else
-                Notification:Notify("error", "Error", "Teleport location not found!", 3)
-            end
-        end)
-
-        Teleports:AddButton("Moosewood Teleport", function()
-            local zone = workspace.zones.player:FindFirstChild("Moosewood")
-            if zone and zone:IsA("BasePart") then
-                game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = zone.CFrame
-                Notification:Notify("info", "Teleported", "Successfully teleported to Moosewood", 3)
-            else
-                Notification:Notify("error", "Error", "Zone not found or invalid part", 3)
-            end
-        end)
-
-        Teleports:AddButton("Forsaken Shores Teleport", function()
-            local args = {
-                [1] = workspace.zones.player:FindFirstChild("Forsaken Shores")
-            }
-
-            game:GetService("ReplicatedStorage").packages.Net:FindFirstChild("RF/SetZone"):InvokeServer(unpack(args))
-            Notification:Notify("info", "Teleported", "Successfully teleported to Forsaken Shores", 3)
-        end)
-
-        Teleports:AddButton("The Depths Teleport", function()
-            local args = {
-                [1] = workspace.zones.player:FindFirstChild("The Depths")
-            }
-
-            game:GetService("ReplicatedStorage").packages.Net:FindFirstChild("RF/SetZone"):InvokeServer(unpack(args))
-            Notification:Notify("info", "Teleported", "Successfully teleported to The Depths", 3)
-        end)
-
-        Teleports:AddButton("Brine Pool Teleport", function()
-            local args = {
-                [1] = workspace.zones.player:FindFirstChild("Brine Pool")
-            }
-
-            game:GetService("ReplicatedStorage").packages.Net:FindFirstChild("RF/SetZone"):InvokeServer(unpack(args))
-            Notification:Notify("info", "Teleported", "Successfully teleported to Brine Pool", 3)
-        end)
-
-        -- Add merchant teleport
-        Teleports:AddButton("Teleport to Merchant", function()
-            LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(464, 151, 232)
-            Notification:Notify("info", "Teleported", "Successfully teleported to Merchant", 3)
-        end)
-
-        -- Auto Sell button
-        Actions:AddButton("Quick Sell", function()
-            game:GetService("ReplicatedStorage").events.Sell:InvokeServer()
-            Notification:Notify("info", "Sold", "Items sold successfully", 3)
-        end)
-
-        Actions:AddButton("Open/Close Boat UI", function()
-            FischUser.OpenBoatUI()
-        end)
-
-        CreditsSection:AddLabel("credit to oggsunny")
-        CreditsSection:AddButton(
-            "Original by oggsunny",
-            function()
-                setclipboard("oggsunny")
-            end
-        )
-
-        Internal.UILoaded = true
-    end)
-
-    if not success then
-        print("UI initialization error: " .. tostring(err))
-        Notification:Notify(
-            "error",
-            "UI Error",
-            "Failed to initialize UI. Check console for details.",
-            5
-        )
-    end
-end
-
--- Utility Functions
-function Utils.Overlap(gui1, gui2)
-    local gui1_topLeft = gui1.AbsolutePosition
-    local gui1_bottomRight = gui1_topLeft + gui1.AbsoluteSize
-
-    local gui2_topLeft = gui2.AbsolutePosition
-    local gui2_bottomRight = gui2_topLeft + gui2.AbsoluteSize
-
-    return ((gui1_topLeft.x < gui2_bottomRight.x and gui1_bottomRight.x > gui2_topLeft.x) and
-            (gui1_topLeft.y < gui2_bottomRight.y and gui1_bottomRight.y > gui2_topLeft.y))
-end
-
--- Virtual Input Functions
-VI.State = false
-
-function VI.ClickUI(ui)
-    local x = ui.AbsolutePosition.X + (ui.AbsoluteSize.X / 2)
-    local y = ui.AbsolutePosition.Y + (ui.AbsoluteSize.Y / 2)
-    VIM:SendMouseButtonEvent(x, y, 0, true, game, 0)
-    task.wait(0.05)
-    VIM:SendMouseButtonEvent(x, y, 0, false, game, 0)
-end
-
-function VI.Down(ui)
-    VI.State = true
-    local x = ui.AbsolutePosition.X + (ui.AbsoluteSize.X / 2)
-    local y = ui.AbsolutePosition.Y + (ui.AbsoluteSize.Y / 2)
-    VIM:SendMouseButtonEvent(x, y, 0, true, game, 0)
-end
-
-function VI.Up(ui)
-    VI.State = false
-    local x = ui.AbsolutePosition.X + (ui.AbsoluteSize.X / 2)
-    local y = ui.AbsolutePosition.Y + (ui.AbsoluteSize.Y / 2)
-    VIM:SendMouseButtonEvent(x, y, 0, false, game, 0)
-end
-
--- API Functions
-function FischAPI.TapShake()
-    local shakeUI = game:GetService("Players").LocalPlayer.PlayerGui:FindFirstChild("shakeui")
-    if shakeUI and shakeUI.Enabled then
-        local safezone = shakeUI:FindFirstChild("safezone")
-        if safezone then
-            local button = safezone:FindFirstChild("button")
-            if button and button:IsA("ImageButton") and button.Visible then
-                if Options.AutoShake2 then
-                    GuiService.SelectedObject = button
-                    VIM:SendKeyEvent(true, Enum.KeyCode.Return, false, game)
-                    VIM:SendKeyEvent(false, Enum.KeyCode.Return, false, game)
-                end
-            end
-        end
-    end
-end
-
-function FischAPI.InstantReel()
-    game:GetService("ReplicatedStorage").events.reelfinished:FireServer(100, true)
-end
-
-function FischAPI.Cast()
-    local player = game.Players.LocalPlayer
-    local character = player.Character
-
-    if character then
-        -- Find the equipped fishing rod
-        local tool = character:FindFirstChildOfClass("Tool")
-
-        if tool then
-            -- Check if the tool is already casting (has a bobber)
-            local hasBobber = tool:FindFirstChild("bobber")
-
-            if not hasBobber then
-                -- Get the cast event
-                local castEvent = tool:FindFirstChild("events") and tool.events:FindFirstChild("cast")
-
-                if castEvent then
-                    -- Generate a random power between 90-99
-                    local power = math.random(90, 99)
-
-                    -- Cast with the random power
-                    castEvent:FireServer(power, 1)
-
-                    -- Ensure the character is not anchored
-                    local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
-                    if humanoidRootPart then
-                        humanoidRootPart.Anchored = false
+MainTab:AddToggle({
+    Name = "Auto Cast",
+    Default = false,
+    Callback = function(Value)
+        autoCast = Value
+        if autoCast then
+            autoCastConnection = LocalCharacter.ChildAdded:Connect(function(child)
+                if child:IsA("Tool") and child:FindFirstChild("events"):WaitForChild("cast") and autoCast then
+                    task.wait(autoCastDelay)
+                    if autoCastMode == "Legit" then
+                        VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, LocalPlayer, 0)
+                        HumanoidRootPart.ChildAdded:Connect(function()
+                            if HumanoidRootPart:FindFirstChild("power") and HumanoidRootPart.power.powerbar.bar then
+                                HumanoidRootPart.power.powerbar.bar.Changed:Connect(function(property)
+                                    if property == "Size" and HumanoidRootPart.power.powerbar.bar.Size == UDim2.new(1, 0, 1, 0) then
+                                        VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, LocalPlayer, 0)
+                                    end
+                                end)
+                            end
+                        end)
+                    elseif autoCastMode == "Rage" then
+                        child.events.cast:FireServer(100)
                     end
                 end
+            end)
+
+            autoCastConnection2 = PlayerGUI.ChildRemoved:Connect(function(GUI)
+                local Tool = LocalCharacter:FindFirstChildOfClass("Tool")
+                if GUI.Name == "reel" and autoCast and Tool and Tool:FindFirstChild("events"):WaitForChild("cast") then
+                    task.wait(autoCastDelay)
+                    if autoCastMode == "Legit" then
+                        VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, LocalPlayer, 0)
+                        HumanoidRootPart.ChildAdded:Connect(function()
+                            if HumanoidRootPart:FindFirstChild("power") and HumanoidRootPart.power.powerbar.bar then
+                                HumanoidRootPart.power.powerbar.bar.Changed:Connect(function(property)
+                                    if property == "Size" and HumanoidRootPart.power.powerbar.bar.Size == UDim2.new(1, 0, 1, 0) then
+                                        VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, LocalPlayer, 0)
+                                    end
+                                end)
+                            end
+                        end)
+                    elseif autoCastMode == "Rage" then
+                        Tool.events.cast:FireServer(100)
+                    end
+                end
+            end)
+        else
+            if autoCastConnection then
+                autoCastConnection:Disconnect()
+                autoCastConnection = nil
+            end
+            if autoCastConnection2 then
+                autoCastConnection2:Disconnect()
+                autoCastConnection2 = nil
             end
         end
+    end,
+})
+
+MainTab:AddDropdown({
+    Name = "Auto Cast Mode",
+    Options = {"Legit", "Rage"},
+    Callback = function(Selected)
+        autoCastMode = Selected
+    end,
+})
+
+MainTab:AddSlider({
+    Name = "Auto Cast Cooldown",
+    Min = 1,
+    Max = 10,
+    Increment = 0.1,
+    Default = 2,
+    Callback = function(Value)
+        autoCastDelay = Value
+    end,
+})
+
+-- Initialize ZoneCast settings
+local ZoneCast = false
+local SelectedZone = nil
+local ZonesList = {}
+
+-- Fill ZonesList with unique fishing zones based on names
+for _, zone in pairs(FishingZonesFolder:GetChildren()) do
+    if not table.find(ZonesList, zone.Name) then
+        table.insert(ZonesList, zone.Name)
     end
 end
 
-function FischAPI.SellAll()
-    workspace.world.npcs["Marc Merchant"].merchant.sellall:InvokeServer()
-end
+-- Zone Cast Toggle
+MainTab:AddToggle({
+    Name = "Zone Cast",
+    Default = false,
+    Callback = function(Value)
+        ZoneCast = Value
+        if ZoneCast then
+            -- Start teleporting the 'blehh' part when ZoneCast is enabled
+            ZoneConnection = LocalCharacter.ChildAdded:Connect(function(child)
+                if ZoneCast and child:IsA("Tool") and SelectedZone then
+                    child.ChildAdded:Connect(function(blehh)
+                        if blehh.Name == "bobber" then
+                            local RopeConstraint = blehh:FindFirstChildOfClass("RopeConstraint")
 
-function FischAPI.AutoSellWithReturn()
-    local player = game.Players.LocalPlayer
-    local character = player.Character or player.CharacterAdded:Wait()
-    local rootPart = character:WaitForChild("HumanoidRootPart")
-    local currentPosition = rootPart.CFrame
-    local sellPosition = CFrame.new(464, 151, 232)
+                            -- Ensure RopeConstraint length is set correctly even after teleportation
+                            if RopeConstraint then
+                                RopeConstraint.Length = math.huge
+                                RopeConstraint.Changed:Connect(function(property)
+                                    if property == "Length" then
+                                        RopeConstraint.Length = math.huge
+                                    end
+                                end)
+                            end
 
-    -- Store whether lock was active
-    local wasLockActive = false
-    if Options.Lock then
-        wasLockActive = true
-        Options.Lock = false
-    end
+                            -- Immediately move 'blehh' to the selected zone's position
+                            task.wait(1)
+                            while ZoneCast and blehh.Parent do
+                                -- Find the zone by its name in FishingZonesFolder
+                                local zoneObject = FishingZonesFolder:FindFirstChild(SelectedZone)
+                                if zoneObject then
+                                    -- Teleport the bobber (blehh) to the zone
+                                    -- Add an offset for Z-axis if necessary, here adding 5 studs in the Y-axis
+                                    blehh.CFrame = zoneObject.CFrame * CFrame.new(0, 5, 0)
+                                end
+                                task.wait()
+                            end
 
-    -- Teleport to merchant
-    rootPart.CFrame = sellPosition
-    task.wait(0.5)
+                            -- Lock the player in place using BodyPosition
+                            local humanoidRootPart = LocalCharacter:FindFirstChild("HumanoidRootPart")
+                            if humanoidRootPart then
+                                -- Create a BodyPosition to lock the position
+                                local bodyPosition = Instance.new("BodyPosition")
+                                bodyPosition.MaxForce = Vector3.new(100000, 100000, 100000)  -- Max force for all axes
+                                bodyPosition.D = 1000  -- Damping (how quickly it stops oscillation)
+                                bodyPosition.P = 10000  -- Power (how strong the force is applied)
+                                bodyPosition.Position = humanoidRootPart.Position  -- Lock to the current position
+                                bodyPosition.Parent = humanoidRootPart  -- Attach it to the root part
 
-    -- Sell all items
-    workspace:WaitForChild("world"):WaitForChild("npcs"):WaitForChild("Marc Merchant"):WaitForChild("merchant"):WaitForChild("sellall"):InvokeServer()
+                                -- Wait before unfreezing the player (give time for fishing to start)
+                                task.wait(1)
 
-    -- Wait and return to original position
-    task.wait(1)
-    rootPart.CFrame = currentPosition
-
-    -- Restore lock if it was active
-    if wasLockActive then
-        Options.Lock = true
-    end
-end
-
-function FischAPI.GetFish()
-    local Text = "Items/Fish:\n"
-    for i, v in pairs(game.Players.LocalPlayer.Backpack:GetChildren()) do
-        Text = Text .. v.Name .. "\n"
-    end
-    return Text
-end
-
--- User Functions
-function FischUser.Sell()
-    FischAPI.SellAll()
-end
-
-function FischUser.AutoShake()
-    task.wait(Options.AutoShakeDelay)
-    FischAPI.TapShake()
-end
-
-function FischUser.OpenBoatUI()
-    game:GetService("Players").LocalPlayer.PlayerGui.hud.safezone.shipwright.Visible = not game:GetService("Players").LocalPlayer.PlayerGui.hud.safezone.shipwright.Visible
-end
-
-function FischUser.LockPosition()
-    if Internal.LockedPosition then
-        game.Players.LocalPlayer.Character.HumanoidRootPart.Position = Internal.LockedPosition
-    end
-end
-
-function FischUser.FloatOnWater()
-    pcall(function()
-        if Internal.FloatPart then
-            Internal.FloatPart:Destroy()
+                                -- Remove the BodyPosition to allow movement again
+                                bodyPosition:Destroy()
+                            end
+                        end
+                    end)
+                end
+            end)
+        else
+            -- Disconnect the ZoneCast when the toggle is off
+            if ZoneConnection then
+                ZoneConnection:Disconnect()
+                ZoneConnection = nil
+            end
         end
-    end)
-    Internal.FloatPart = Instance.new("Part", workspace)
-    Internal.FloatPart.Anchored = true
-    Internal.FloatPart.Size = Vector3.new(10, 1, 10)
-    Internal.FloatPart.Position = Vector3.new(game.Players.LocalPlayer.Character.HumanoidRootPart.Position.X, 133.77, game.Players.LocalPlayer.Character.HumanoidRootPart.Position.Z)
-    game.Players.LocalPlayer.Character.HumanoidRootPart.Position = Vector3.new(game.Players.LocalPlayer.Character.HumanoidRootPart.Position.X, 150, game.Players.LocalPlayer.Character.HumanoidRootPart.Position.Z)
+    end,
+})
+
+-- Fishing Zone Dropdown for selection
+MainTab:AddDropdown({
+    Name = "Select Fishing Zone",
+    Options = ZonesList,
+    Callback = function(Selected)
+        SelectedZone = Selected  -- Store the selected zone name
+    end,
+})
+
+-- Variables to hold the state and configurations
+local autoReel = false
+local autoReelDelay = 1
+local autoShake = false
+local autoShakeDelay = 1
+local autoShakeMethod = "ClickEvent"
+
+-- Auto Reel
+MainTab:AddToggle({
+    Name = "Auto Reel",
+    Default = false,
+    Callback = function(Value)
+        autoReel = Value
+        if autoReel then
+            autoreelandshakeConnection = PlayerGUI.ChildAdded:Connect(function(GUI)
+                if GUI:IsA("ScreenGui") and GUI.Name == "reel" then
+                    repeat
+                        task.wait(autoReelDelay)
+                        ReplicatedStorage.events.reelfinished:FireServer(100, false)
+                    until GUI == nil
+                end
+            end)
+        else
+            if autoreelandshakeConnection then
+                autoreelandshakeConnection:Disconnect()
+            end
+        end
+    end,
+})
+
+MainTab:AddSlider({
+    Name = "Auto Reel Cooldown",
+    Min = 0,
+    Max = 10,
+    Increment = 0.1,
+    Default = 1,
+    Callback = function(Value)
+        autoReelDelay = Value
+    end,
+})
+
+-- Auto Shake
+MainTab:AddToggle({
+    Name = "Auto Shake",
+    Default = false,
+    Callback = function(Value)
+        autoShake = Value
+        if autoShake then
+            autoreelandshakeConnection = PlayerGUI.ChildAdded:Connect(function(GUI)
+                if GUI:IsA("ScreenGui") and GUI.Name == "shakeui" then
+                    if GUI:FindFirstChild("safezone") ~= nil then
+                        GUI.safezone.ChildAdded:Connect(function(child)
+                            if child:IsA("ImageButton") and child.Name == "button" then
+                                task.wait(autoShakeDelay)
+                                if child.Visible == true then
+                                    if autoShakeMethod == "ClickEvent" then
+                                        local pos = child.AbsolutePosition
+                                        local size = child.AbsoluteSize
+                                        VirtualInputManager:SendMouseButtonEvent(pos.X + size.X / 2, pos.Y + size.Y / 2, 0, true, LocalPlayer, 0)
+                                        VirtualInputManager:SendMouseButtonEvent(pos.X + size.X / 2, pos.Y + size.Y / 2, 0, false, LocalPlayer, 0)
+                                    elseif autoShakeMethod == "KeyCodeEvent" then
+                                        GuiService.Changed:Connect(function(property)
+                                            GuiService.SelectedObject = child
+                                            if property == "SelectedObject" then
+                                                if GuiService.SelectedObject == child then
+                                                    VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.Return, false, game)
+                                                    VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.Return, false, game)
+                                                end
+                                            end
+                                        end)
+                                        GuiService.SelectedObject = child
+                                    end
+                                end
+                            end
+                        end)
+                    end
+                end
+            end)
+        else
+            if autoreelandshakeConnection then
+                autoreelandshakeConnection:Disconnect()
+            end
+        end
+    end,
+})
+
+MainTab:AddDropdown({
+    Name = "Auto Shake Mode",
+    Options = {"ClickEvent", "KeyCodeEvent"},
+    Callback = function(Selected)
+        autoShakeMethod = Selected
+    end,
+})
+
+MainTab:AddSlider({
+    Name = "Auto Shake Cooldown",
+    Min = 0,
+    Max = 10,
+    Increment = 0.1,
+    Default = 1,
+    Callback = function(Value)
+        autoShakeDelay = Value
+    end,
+})
+
+-- Sell Fish Buttons
+MainTab:AddButton({
+    Name = "Sell Fish (Holding)",
+    Callback = function()
+        Workspace:WaitForChild("world"):WaitForChild("npcs"):WaitForChild("Marc Merchant"):WaitForChild("merchant"):WaitForChild("sell"):InvokeServer()
+    end,
+})
+
+MainTab:AddButton({
+    Name = "Sell All Fish",
+    Callback = function()
+        Workspace:WaitForChild("world"):WaitForChild("npcs"):WaitForChild("Marc Merchant"):WaitForChild("merchant"):WaitForChild("sellall"):InvokeServer()
+    end,
+})
+
+MainTab:AddButton({
+    Name = "Appraise Fish (450C$)",
+    Callback = function()
+        Workspace:WaitForChild("world"):WaitForChild("npcs"):WaitForChild("Appraiser"):WaitForChild("appraiser"):WaitForChild("appraise"):InvokeServer()
+    end,
+})
+
+-- Teleports Tab
+local TeleportsTab = Window:MakeTab({
+    Name = "Teleports",
+    Icon = "rbxassetid://4483362458",
+    PremiumOnly = false
+})
+
+TeleportsTab:AddLabel("Places")
+
+local function capitalizeFirstLetter(str)
+    return str:sub(1, 1):upper() .. str:sub(2):lower()
 end
 
-function FischUser.AutoReel()
-    FischAPI.InstantReel()
+local teleportOptions = {}
+for _, spot in pairs(TpSpotsFolder:GetChildren()) do
+    table.insert(teleportOptions, capitalizeFirstLetter(spot.Name))
 end
 
-function FischUser.AutoCast()
-    FischAPI.Cast()
+TeleportsTab:AddDropdown({
+    Name = "Teleport to Place",
+    Options = teleportOptions,
+    Callback = function(Selected)
+        local actualSpotName = Selected:lower()
+        local selectedPlace = TpSpotsFolder:FindFirstChild(actualSpotName)
+        if selectedPlace and HumanoidRootPart then
+            HumanoidRootPart.CFrame = selectedPlace.CFrame + Vector3.new(0, 5, 0)
+        end
+    end,
+})
+
+local formattedNpcNames = {}
+for npcName, _ in pairs(npcSpots) do
+    local formattedName = npcName:gsub("_", " "):gsub("(%a)([%w_']*)", function(first, rest) return first:upper() .. rest:lower() end)
+    table.insert(formattedNpcNames, formattedName)
 end
 
-function FischUser.AutoSellLoop()
-    if Options.AutoSell then
-        FischAPI.AutoSellWithReturn()
+TeleportsTab:AddLabel("NPCs")
+
+TeleportsTab:AddDropdown({
+    Name = "Teleport to NPC",
+    Options = formattedNpcNames,
+    Callback = function(SelectedNpc)
+        local originalName = SelectedNpc:gsub(" ", "_")
+        local npcCFrame = npcSpots[originalName]
+
+        if npcCFrame and HumanoidRootPart then
+            HumanoidRootPart.CFrame = npcCFrame + Vector3.new(0, 2, 0)
+        end
+    end,
+})
+
+TeleportsTab:AddLabel("Items")
+
+TeleportsTab:AddDropdown({
+    Name = "Teleport to Item",
+    Options = {
+        "Bait Crate",
+        "Carbon Rod",
+        "Crab Cage",
+        "Fast Rod",
+        "Flimsy Rod",
+        "GPS",
+        "Long Rod",
+        "Lucky Rod",
+        "Plastic Rod",
+        "Training Rod"
+    },
+    Callback = function(Selected)
+        local itemCFrame = itemSpots[Selected:gsub(" ", "_")]
+        if itemCFrame then
+            local newCFrame = CFrame.new(itemCFrame.Position + Vector3.new(0, 5, 0)) * CFrame.Angles(0, itemCFrame:ToEulerAnglesXYZ())
+            HumanoidRootPart.CFrame = newCFrame
+        end
+    end,
+})
+
+TeleportsTab:AddLabel("SafeZone")
+
+TeleportsTab:AddButton({
+    Name = "Teleport to SafeZone",
+    Callback = function()
+        if safePart and HumanoidRootPart then
+            HumanoidRootPart.CFrame = safePart.CFrame + Vector3.new(0, 5, 0)
+        end
+    end,
+})
+
+-- Misc Tab
+local MiscTab = Window:MakeTab({
+    Name = "Misc",
+    Icon = "rbxassetid://4483362458",
+    PremiumOnly = false
+})
+
+MiscTab:AddLabel("Credits")
+MiscTab:AddLabel("Script made by Palomita")
+
+local FPS = 0
+local FrameCounter = 0
+local FrameTimer = tick()
+
+local pingLabel = MiscTab:AddLabel("Ping: " .. tostring(math.floor(game:GetService('Stats').Network.ServerStatsItem['Data Ping']:GetValue())))
+
+local fpsLabel = MiscTab:AddLabel("FPS: 0")
+
+coroutine.wrap(function()
+    while true do
+        FrameCounter += 1
+
+        if (tick() - FrameTimer) >= 1 then
+            FPS = FrameCounter
+            FrameTimer = tick()
+            FrameCounter = 0
+        end
+
+        local ping = math.floor(game:GetService('Stats').Network.ServerStatsItem['Data Ping']:GetValue())
+
+        fpsLabel:Set("FPS: " .. tostring(FPS))
+        pingLabel:Set("Ping: " .. tostring(ping))
+
+        wait(0.1)
     end
-end
+end)()
 
-function FischUser.StepLoop()
-    if Options.FloatOnWater then
-        pcall(function()
-            FischUser.FloatOnWater()
-        end)
-    end
+local AntiDrown = false
+local LocalPlayer = game.Players.LocalPlayer
+local LocalCharacter = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
 
-    -- Handle auto shake (enter only)
-    if Options.AutoShake2 then
-        pcall(function()
-            FischUser.AutoShake()
-        end)
-    end
+local CharAddedAntiDrownCon
 
-    if Options.AutoMinigameBlatant then
-        pcall(function()
-            FischUser.AutoReel()
-        end)
-    end
-end
-
-function FischUser.Heartbeat()
-    -- Position locking with smoother implementation
-    if Options.Lock and Internal.LockedPosition then
-        pcall(function()
-            local character = game.Players.LocalPlayer.Character
-            if character and character:FindFirstChild("HumanoidRootPart") then
-                local currentPos = character.HumanoidRootPart.Position
-                local targetPos = Internal.LockedPosition
-
-                -- Only adjust if we've drifted more than a small threshold
-                if (currentPos - targetPos).Magnitude > 0.5 then
-                    game.Players.LocalPlayer.Character.HumanoidRootPart.Position = targetPos
+MiscTab:AddToggle({
+    Name = "AntiDrown",
+    Default = false,
+    Callback = function(Value)
+        AntiDrown = Value
+        if Value == true then
+            if LocalCharacter and LocalCharacter:FindFirstChild("client") then
+                local oxygen = LocalCharacter.client:FindFirstChild("oxygen")
+                if oxygen and oxygen.Enabled == true then
+                    oxygen.Enabled = false
                 end
             end
-        end)
-    end
-end
-
-function FischUser.OneStep()
-    -- Empty for now, can be used for future features
-end
-
-function FischUser.Relaxed1Sec()
-    if Options.AutoCast then
-        pcall(function()
-            if Options.Lock and Internal.LockedPosition then
-                FischUser.LockPosition()
+            CharAddedAntiDrownCon = LocalPlayer.CharacterAdded:Connect(function()
+                LocalCharacter = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+                if LocalCharacter and LocalCharacter:FindFirstChild("client") then
+                    local oxygen = LocalCharacter.client:FindFirstChild("oxygen")
+                    if oxygen and oxygen.Enabled == true and AntiDrown == true then
+                        oxygen.Enabled = false
+                    end
+                end
+            end)
+        else
+            if LocalCharacter and LocalCharacter:FindFirstChild("client") then
+                local oxygen = LocalCharacter.client:FindFirstChild("oxygen")
+                if oxygen and oxygen.Enabled == false then
+                    oxygen.Enabled = true
+                end
             end
-            FischUser.AutoCast()
-        end)
-    end
+            if CharAddedAntiDrownCon then
+                CharAddedAntiDrownCon:Disconnect()
+            end
+        end
+    end,
+})
+
+-- Initialize Collar Player settings
+local CollarPlayer = false
+local SelectedPlayer = nil
+local PlayerList = {}
+
+-- Fill PlayerList with the names of all players in the game
+for _, player in pairs(game.Players:GetPlayers()) do
+    table.insert(PlayerList, player.Name)
 end
 
-function FischUser.Initialize()
-    -- Set up the main loops
-    spawn(function()
-        game:GetService("RunService").RenderStepped:Connect(function()
-            pcall(function()
-                FischUser.Heartbeat()
-            end)
-        end)
-    end)
-
-    spawn(function()
-        FischUser.OneStep()
-    end)
-
-    spawn(function()
-        while task.wait(0.005) do
-            pcall(function()
-                FischUser.StepLoop()
-            end)
-        end
-    end)
-
-    spawn(function()
-        while task.wait(1) do
-            pcall(function()
-                FischUser.Relaxed1Sec()
-            end)
-        end
-    end)
-
-    spawn(function()
-        while task.wait(Options.AutoSellDelay * 60) do
-            pcall(function()
-                FischUser.AutoSellLoop()
-            end)
-        end
-    end)
-
-    -- Initialize UI with delay to ensure game has loaded
-    spawn(function()
-        wait(2) -- Give game time to fully load
-        pcall(function()
-            UI.Initialize()
-        end)
-    end)
-end
-
--- Added UI initialization error handling
-pcall(function()
-    Notification:Notify(
-        "info",
-        "Fisch Script Loading",
-        "Script combined - credit to oggsunny",
-        5
-    )
+-- Update PlayerList whenever a player joins or leaves
+game.Players.PlayerAdded:Connect(function(player)
+    table.insert(PlayerList, player.Name)
 end)
 
--- Start everything with error handling
-pcall(function()
-    FischUser.Initialize()
-end)
-
--- Delayed UI initialization as a backup
-spawn(function()
-    wait(5)
-    if not Internal.UILoaded then
-        pcall(function()
-            UI.Initialize()
-            Notification:Notify(
-                "info",
-                "UI Loaded",
-                "Interface initialized via backup method - credit to oggsunny",
-                3
-            )
-        end)
+game.Players.PlayerRemoving:Connect(function(player)
+    for i, name in ipairs(PlayerList) do
+        if name == player.Name then
+            table.remove(PlayerList, i)
+            break
+        end
     end
 end)
 
-return FischAPI
+MiscTab:AddToggle({
+    Name = "Collar Player",
+    Default = false,
+    Callback = function(Value)
+        CollarPlayer = Value
+        if CollarPlayer and SelectedPlayer then
+            CollarConnection = LocalCharacter.ChildAdded:Connect(function(child)
+                if CollarPlayer and child:IsA("Tool") and SelectedPlayer then
+                    child.ChildAdded:Connect(function(blehh)
+                        if blehh.Name == "bobber" then
+                            local RopeConstraint = blehh:FindFirstChildOfClass("RopeConstraint")
+
+                            if RopeConstraint then
+                                RopeConstraint.Length = math.huge
+                                RopeConstraint.Changed:Connect(function(property)
+                                    if property == "Length" then
+                                        RopeConstraint.Length = math.huge
+                                    end
+                                end)
+                            end
+
+                            task.wait(1)
+                            while CollarPlayer and blehh.Parent do
+                                local targetPlayer = game.Players:FindFirstChild(SelectedPlayer)
+                                if targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("Head") then
+                                    blehh.CFrame = targetPlayer.Character.Head.CFrame * CFrame.new(0, -0.5, 0) -- Position it slightly below the head
+                                end
+                                task.wait()
+                            end
+                        end
+                    end)
+                end
+            end)
+        else
+            if CollarConnection then
+                CollarConnection:Disconnect()
+                CollarConnection = nil
+            end
+        end
+    end,
+})
+
+MiscTab:AddDropdown({
+    Name = "Select Player",
+    Options = PlayerList,
+    Callback = function(Selected)
+        SelectedPlayer = Selected
+    end,
+})
+
+MiscTab:AddButton({
+    Name = "Boost FPS",
+    Callback = function()
+        _G.Ignore = {}
+        _G.Settings = {
+            Players = {
+                ["Ignore Me"] = true,
+                ["Ignore Others"] = true,
+                ["Ignore Tools"] = true
+            },
+            Meshes = {
+                NoMesh = false,
+                NoTexture = false,
+                Destroy = false
+            },
+            Images = {
+                Invisible = true,
+                Destroy = false
+            },
+            Explosions = {
+                Smaller = true,
+                Invisible = false,
+                Destroy = false
+            },
+            Particles = {
+                Invisible = true,
+                Destroy = false
+            },
+            TextLabels = {
+                LowerQuality = true,
+                Invisible = false,
+                Destroy = false
+            },
+            MeshParts = {
+                LowerQuality = true,
+                Invisible = false,
+                NoTexture = false,
+                NoMesh = false,
+                Destroy = false
+            },
+            Other = {
+                ["FPS Cap"] = 360,
+                ["No Camera Effects"] = true,
+                ["No Clothes"] = true,
+                ["Low Water Graphics"] = true,
+                ["No Shadows"] = true,
+                ["Low Rendering"] = true,
+                ["Low Quality Parts"] = true,
+                ["Low Quality Models"] = true,
+                ["Reset Materials"] = true,
+            }
+        }
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/CasperFlyModz/discord.gg-rips/main/FPSBooster.lua"))()
+    end,
+})
+
+MiscTab:AddButton({
+    Name = "Destroy GUI",
+    Callback = function()
+        -- Disable Auto Cast
+        autoCast = false
+        if autoCastConnection then
+            autoCastConnection:Disconnect()
+            autoCastConnection = nil
+        end
+        if autoCastConnection2 then
+            autoCastConnection2:Disconnect()
+            autoCastConnection2 = nil
+        end
+
+        -- Disable Auto Reel
+        autoReel = false
+        if autoreelandshakeConnection then
+            autoreelandshakeConnection:Disconnect()
+            autoreelandshakeConnection = nil
+        end
+
+        -- Disable Auto Shake
+        autoShake = false
+        if autoreelandshakeConnection then
+            autoreelandshakeConnection:Disconnect()
+            autoreelandshakeConnection = nil
+        end
+
+        -- Reset Zone Cast
+        ZoneCast = false
+        if ZoneConnection then
+            ZoneConnection:Disconnect()
+            ZoneConnection = nil
+        end
+
+        -- Disable AntiDrown and re-enable oxygen
+        AntiDrown = false
+        local LocalCharacter = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+        local oxygen = LocalCharacter:FindFirstChild("client") and LocalCharacter.client:FindFirstChild("oxygen")
+        if oxygen then
+            oxygen.Enabled = true
+        end
+        if CharAddedAntiDrownCon then
+            CharAddedAntiDrownCon:Disconnect()
+            CharAddedAntiDrownCon = nil
+        end
+
+        -- Remove safe zone part if it exists
+        if safePart then
+            safePart:Destroy()
+            safePart = nil
+        end
+
+        -- Destroy the GUI
+        OrionLib:Destroy()
+    end,
+})
+
+OrionLib:Init()
