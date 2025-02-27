@@ -37,6 +37,29 @@ local PlayerGUI = LocalPlayer:FindFirstChildOfClass("PlayerGui")
 local RenderStepped = RunService.RenderStepped
 local WaitForSomeone = RenderStepped.Wait
 
+-- FIXED: Add the missing TpSpotsFolder definition
+-- Try to find a folder with teleport spots
+local TpSpotsFolder = workspace:FindFirstChild("TeleportSpots") or workspace:FindFirstChild("TpSpots")
+
+-- If TpSpotsFolder doesn't exist, create a simple one with current location
+if not TpSpotsFolder then
+    TpSpotsFolder = Instance.new("Folder")
+    TpSpotsFolder.Name = "TeleportSpots"
+    TpSpotsFolder.Parent = workspace
+    
+    -- Add current location as a spot
+    local currentSpot = Instance.new("Part")
+    currentSpot.Name = "CurrentLocation"
+    currentSpot.Anchored = true
+    currentSpot.CanCollide = false
+    currentSpot.Transparency = 1
+    currentSpot.CFrame = HumanoidRootPart.CFrame
+    currentSpot.Parent = TpSpotsFolder
+    
+    -- Add this to teleport spots
+    table.insert(teleportSpots, "CurrentLocation")
+end
+
 -- Variables
 local autoShake = false
 local autoShakeDelay = 0.1
@@ -174,7 +197,7 @@ NoclipConnection = RunService.Stepped:Connect(function()
 end)
 
 -- Populate teleport spots
-for _, v in pairs(Workspace.world.spawns.TpSpots:GetChildren()) do
+for _, v in pairs(TpSpotsFolder:GetChildren()) do
     if not table.find(teleportSpots, v.Name) then
         table.insert(teleportSpots, v.Name)
     end
@@ -237,12 +260,19 @@ MainTab:Slider("AutoCast Delay", 0, 10, 2, "seconds", function(Value)
     autoCastDelay = Value
 end)
 
+-- Additional feature - Noclip
+MainTab:Section("Utilities")
+
+MainTab:Toggle("Enable Noclip", false, function(Value)
+    Noclip = Value
+end)
+
 -- Teleports Tab
 TeleportsTab:Section("Teleports")
 
 TeleportsTab:Dropdown("Teleport to Location", teleportSpots, function(Value)
     if teleportSpots and HumanoidRootPart then
-        HumanoidRootPart.CFrame = Workspace.world.spawns.TpSpots:FindFirstChild(Value).CFrame + Vector3.new(0, 5, 0)
+        HumanoidRootPart.CFrame = TpSpotsFolder:FindFirstChild(Value).CFrame + Vector3.new(0, 5, 0)
     end
 end)
 
@@ -250,6 +280,23 @@ TeleportsTab:Dropdown("Teleport to Item", {"Bait_Crate", "Carbon_Rod", "Crab_Cag
     if itemSpots and HumanoidRootPart then
         HumanoidRootPart.CFrame = itemSpots[Value]
     end
+end)
+
+-- Save current location as a teleport spot
+TeleportsTab:Button("Save Current Location", function()
+    local spotName = "Spot_" .. #teleportSpots + 1
+    
+    local newSpot = Instance.new("Part")
+    newSpot.Name = spotName
+    newSpot.Anchored = true
+    newSpot.CanCollide = false
+    newSpot.Transparency = 1
+    newSpot.CFrame = HumanoidRootPart.CFrame
+    newSpot.Parent = TpSpotsFolder
+    
+    table.insert(teleportSpots, spotName)
+    
+    NeverloseLib:Notification("Location Saved", "Saved current location as " .. spotName, 3)
 end)
 
 -- Unload Script
@@ -273,3 +320,6 @@ MainTab:Button("Unload Script", function()
     -- Notify the user
     NeverloseLib:Notification("Script Unloaded", "The script has been unloaded successfully.", 5)
 end)
+
+-- Notify that script has loaded successfully
+NeverloseLib:Notification("Ogsunny Hub", "Script loaded successfully! V1.2.4", 5)
