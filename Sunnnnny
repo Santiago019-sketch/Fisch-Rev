@@ -52,7 +52,7 @@ if not TpSpotsFolder then
     TpSpotsFolder = Instance.new("Folder")
     TpSpotsFolder.Name = "TeleportSpots"
     TpSpotsFolder.Parent = workspace
-    
+
     -- Add current location as a spot
     local currentSpot = Instance.new("Part")
     currentSpot.Name = "CurrentLocation"
@@ -61,7 +61,7 @@ if not TpSpotsFolder then
     currentSpot.Transparency = 1
     currentSpot.CFrame = HumanoidRootPart.CFrame
     currentSpot.Parent = TpSpotsFolder
-    
+
     -- Add this to teleport spots
     table.insert(teleportSpots, "CurrentLocation")
 end
@@ -80,6 +80,9 @@ local Noclip = false
 -- Create Tabs
 local MainTab = Window:AddTab({Title = "Main", Icon = "activity"})
 local TeleportsTab = Window:AddTab({Title = "Teleports", Icon = "map-pin"})
+local AutomationTab = Window:AddTab({Title = "Automation", Icon = "robot"})
+local UtilitiesTab = Window:AddTab({Title = "Utilities", Icon = "wrench"})
+local SettingsTab = Window:AddTab({Title = "Settings", Icon = "settings"})
 
 -- Fix for character references
 LocalPlayer.CharacterAdded:Connect(function(Character)
@@ -374,7 +377,7 @@ TeleportsTab:AddButton({
     Title = "Save Current Location",
     Callback = function()
         local spotName = "Spot_" .. #teleportSpots + 1
-        
+
         local newSpot = Instance.new("Part")
         newSpot.Name = spotName
         newSpot.Anchored = true
@@ -382,9 +385,9 @@ TeleportsTab:AddButton({
         newSpot.Transparency = 1
         newSpot.CFrame = HumanoidRootPart.CFrame
         newSpot.Parent = TpSpotsFolder
-        
+
         table.insert(teleportSpots, spotName)
-        
+
         Fluent:Notify({
             Title = "Location Saved",
             Content = "Saved current location as " .. spotName,
@@ -428,3 +431,376 @@ Fluent:Notify({
     Content = "Script loaded successfully! V1.2.4",
     Duration = 5
 })
+
+-- Automation Tab
+local AutomationFishingGroup = AutomationTab:AddSection("Fishing")
+
+-- Auto-cast Toggle
+AutomationTab:AddToggle({
+    Title = "Auto-cast",
+    Default = false,
+    Callback = function(Value)
+        autoCast = Value
+    end
+})
+
+-- Always perfect cast Toggle
+AutomationTab:AddToggle({
+    Title = "Always perfect [Server]",
+    Default = false,
+    Callback = function(Value)
+        -- Implementation for perfect cast
+    end
+})
+
+-- Instant bob Toggle
+AutomationTab:AddToggle({
+    Title = "Instant bob [Blatant]",
+    Default = false,
+    Callback = function(Value)
+        -- Implementation for instant bob
+    end
+})
+
+-- Auto-reel Toggle
+AutomationTab:AddToggle({
+    Title = "Auto-reel [Legit]",
+    Default = false,
+    Callback = function(Value)
+        autoReel = Value
+    end
+})
+
+-- Instant reel Toggle
+AutomationTab:AddToggle({
+    Title = "Insta-reel [Blatant]",
+    Default = false,
+    Callback = function(Value)
+        -- Implementation for instant reel
+    end
+})
+
+-- Always perfect reel Toggle
+AutomationTab:AddToggle({
+    Title = "Always perfect",
+    Default = false,
+    Callback = function(Value)
+        -- Implementation for always perfect reel
+    end
+})
+
+-- Auto shake Toggle
+AutomationTab:AddToggle({
+    Title = "Auto shake",
+    Default = false,
+    Callback = function(Value)
+        autoShake = Value
+    end
+})
+
+-- Center-shake Toggle
+AutomationTab:AddToggle({
+    Title = "Center-shake [Improves AutoShake]",
+    Default = false,
+    Callback = function(Value)
+        -- Implementation for center-shake
+    end
+})
+
+-- Teleports Group
+local TeleportsGroupBox = AutomationTab:AddSection("Teleports")
+
+-- Teleport locations Dropdown
+AutomationTab:AddDropdown({
+    Title = "Select location",
+    Values = teleportSpots,
+    Callback = function(Value)
+        if teleportSpots and HumanoidRootPart then
+            HumanoidRootPart.CFrame = TpSpotsFolder:FindFirstChild(Value).CFrame + Vector3.new(0, 5, 0)
+        end
+    end
+})
+
+-- Teleport Button
+AutomationTab:AddButton({
+    Title = "Teleport",
+    Callback = function()
+        local Selected = GetOptionValue("TeleportsDropdown")
+        local Position = TeleportLocations[Selected]
+
+        if Position then
+            Utils.TP(Position)
+        end
+    end
+})
+
+-- Utilities Group
+local UtilitiesGroupBox = UtilitiesTab:AddSection("Utilities")
+
+-- Fish radar Toggle
+UtilitiesTab:AddToggle({
+    Title = "Fish radar",
+    Default = false,
+    Callback = function(Value)
+        -- Implementation for fish radar
+    end
+})
+
+-- Disable oxygen/temperature Toggle
+UtilitiesTab:AddToggle({
+    Title = "Disable oxygen/temperature",
+    Default = false,
+    Callback = function(Value)
+        -- Implementation for disable oxygen/temperature
+    end
+})
+
+-- Infinite oxygen Toggle
+UtilitiesTab:AddToggle({
+    Title = "Infinite oxygen [Water]",
+    Default = false,
+    Callback = function(Value)
+        -- Implementation for infinite oxygen
+    end
+})
+
+-- Anti-AFK Toggle
+UtilitiesTab:AddToggle({
+    Title = "Anti-AFK",
+    Default = false,
+    Callback = function(Value)
+        -- Implementation for anti-AFK
+    end
+})
+
+-- No fish models Toggle
+UtilitiesTab:AddToggle({
+    Title = "No fish models",
+    Default = false,
+    Callback = function(Value)
+        -- Implementation for no fish models
+    end
+})
+
+-- Disable rendering Toggle
+UtilitiesTab:AddToggle({
+    Title = "Disable rendering [+FPS]",
+    Default = false,
+    Callback = function(Value)
+        RunService:Set3dRenderingEnabled(not Value)
+    end
+})
+
+-- Disable custom inventory Toggle
+UtilitiesTab:AddToggle({
+    Title = "Disable custom inventory [+FPS]",
+    Default = false,
+    Callback = function(Value)
+        local Inventory = WaitForTable(LocalPlayer.PlayerGui, { "hud", "safezone", "backpack" })
+        if Inventory then
+            Inventory.Visible = not Value
+            StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, Value)
+        end
+    end
+})
+
+-- Spam equipped tool Toggle
+UtilitiesTab:AddToggle({
+    Title = "Spam equipped tool",
+    Default = false,
+    Callback = function(Value)
+        -- Implementation for spam equipped tool
+    end
+})
+
+-- Remote Shop Group
+local ShopGroupBox = UtilitiesTab:AddSection("Remote Shop")
+
+-- Target item Dropdown
+UtilitiesTab:AddDropdown({
+    Title = "Target item",
+    Values = {},
+    Callback = function(Value)
+        -- Implementation for target item
+    end
+})
+
+-- Buy Item Button
+UtilitiesTab:AddButton({
+    Title = "Buy Item",
+    Callback = function()
+        -- Implementation for buy item
+    end
+})
+
+-- Merlin Group
+UtilitiesTab:AddSection("Merlin")
+
+-- Item amount Slider
+UtilitiesTab:AddSlider({
+    Title = "Item amount",
+    Min = 1,
+    Max = 1000,
+    Default = 1,
+    Callback = function(Value)
+        -- Implementation for item amount
+    end
+})
+
+-- Buy Power Button
+UtilitiesTab:AddButton({
+    Title = "Buy Power",
+    Callback = function()
+        -- Implementation for buy power
+    end
+})
+
+-- Buy Luck Button
+UtilitiesTab:AddButton({
+    Title = "Buy Luck",
+    Callback = function()
+        -- Implementation for buy luck
+    end
+})
+
+-- Boat Group
+local BoatGroupBox = UtilitiesTab:AddSection("Boat")
+
+-- Select boat Dropdown
+UtilitiesTab:AddDropdown({
+    Title = "Select boat",
+    Values = {},
+    Callback = function(Value)
+        -- Implementation for select boat
+    end
+})
+
+-- Remote-Spawn Boat Button
+UtilitiesTab:AddButton({
+    Title = "Remote-Spawn Boat",
+    Callback = function()
+        -- Implementation for remote-spawn boat
+    end
+})
+
+-- Settings Tab
+local MenuGroup = SettingsTab:AddSection("Menu")
+
+-- Unload Button
+SettingsTab:AddButton({
+    Title = "Unload",
+    Callback = function()
+        -- Disconnect all connections
+        if autoreelandshakeConnection then autoreelandshakeConnection:Disconnect() end
+        if autoCastConnection then autoCastConnection:Disconnect() end
+        if autoCastConnection2 then autoCastConnection2:Disconnect() end
+        if NoclipConnection then NoclipConnection:Disconnect() end
+
+        -- Remove GUI elements
+        for _, v in pairs(PlayerGUI:GetChildren()) do
+            if v:IsA("ScreenGui") and (v.Name == "shakeui" or v.Name == "reel") then
+                v:Destroy()
+            end
+        end
+
+        -- Unload the Fluent UI Library
+        Window:Destroy()
+
+        -- Notify the user
+        Fluent:Notify({
+            Title = "Script Unloaded",
+            Content = "The script has been unloaded successfully.",
+            Duration = 5
+        })
+    end
+})
+
+-- Menu bind
+MenuGroup:AddLabel("Menu bind")
+    :AddKeyPicker("MenuKeybind", { Default = "RightControl", NoUI = true, Text = "Menu keybind" })
+
+-- Rainbow UI Toggle
+MenuGroup:AddToggle({
+    Title = "Rainbow UI",
+    Default = false,
+    Callback = function(Value)
+        -- Implementation for rainbow UI
+    end
+})
+
+-- Custom Cursor Toggle
+MenuGroup:AddToggle({
+    Title = "Custom Cursor",
+    Default = true,
+    Callback = function(Value)
+        Library.ShowCustomCursor = Value
+    end
+})
+
+Library.ToggleKeybind = UI.Options.MenuKeybind
+Library.ShowCustomCursor = UI.Toggles.ShowCustomCursor.Value
+
+-- SaveManager and ThemeManager setup
+ThemeManager:SetLibrary(Library)
+SaveManager:SetLibrary(Library)
+
+SaveManager:IgnoreThemeSettings()
+SaveManager:SetIgnoreIndexes({ "MenuKeybind" })
+ThemeManager:SetFolder("sasware_fisch")
+SaveManager:SetFolder("sasware_fisch/main")
+
+SaveManager:BuildConfigSection(SettingsTab)
+ThemeManager:ApplyToTab(SettingsTab)
+
+-- Initialization
+Collect(RunService.RenderStepped:Connect(function()
+    Library:SetWatermark("Current connections: " .. #Collection)
+end))
+
+-- Hooks and script modifications
+if not NO_HOOKING then
+    -- Implement hooks and modifications here
+end
+
+-- Start coroutines
+coroutine.resume(ServerStressCoroutine)
+coroutine.resume(AutoClickCoroutine)
+coroutine.resume(AutoReelCoroutine)
+coroutine.resume(AutoCastCoroutine)
+coroutine.resume(ShopUpdateCoroutine)
+Collect(ServerStressCoroutine)
+Collect(AutoClickCoroutine)
+Collect(AutoReelCoroutine)
+Collect(AutoCastCoroutine)
+Collect(ShopUpdateCoroutine)
+
+Collect(LocalPlayer.CharacterAdded:Connect(Utils.CharacterAdded))
+Collect(RunService.RenderStepped:Connect(function()
+    if GetToggleValue("Rainbow") then
+        Library.AccentColor = Library.CurrentRainbowColor
+        Library:UpdateColorsUsingRegistry()
+    end
+end))
+
+OnUnload.Event:Once(function()
+    for _, PersistentModel in next, CollectionService:GetTagged("ForcePersistent") do
+        if PersistentModel:GetAttribute("OldStreamingMode") then
+            local OldStreamingMode = PersistentModel:GetAttribute("OldStreamingMode")
+            PersistentModel.ModelStreamingMode = Enum.ModelStreamingMode[OldStreamingMode]
+        else
+            PersistentModel.ModelStreamingMode = Enum.ModelStreamingMode.Default
+        end
+
+        CollectionService:RemoveTag(PersistentModel, "ForcePersistent")
+        PersistentModel:SetAttribute("OldStreamingMode", nil)
+    end
+end)
+
+if LocalPlayer.Character then
+    Utils.CharacterAdded(LocalPlayer.Character)
+end
+
+SaveManager:LoadAutoloadConfig()
+PreAutoloadConfig = false
+
+Utils.GameNotify("Sasware [Fisch] loaded successfully!")
