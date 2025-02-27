@@ -10,6 +10,36 @@ if not success then
     return
 end
 
+-- Define missing variables
+local npcSpots = {
+    Marc_Merchant = workspace:WaitForChild("world"):WaitForChild("npcs"):WaitForChild("Marc Merchant").HumanoidRootPart.CFrame,
+    Appraiser = workspace:WaitForChild("world"):WaitForChild("npcs"):WaitForChild("Appraiser").HumanoidRootPart.CFrame,
+    Fisherman = workspace:WaitForChild("world"):WaitForChild("npcs"):FindFirstChild("Fisherman") and workspace.world.npcs.Fisherman.HumanoidRootPart.CFrame or CFrame.new(0,0,0)
+}
+
+local itemSpots = {
+    Bait_Crate = workspace:WaitForChild("world"):WaitForChild("items"):FindFirstChild("Bait Crate") and workspace.world.items["Bait Crate"].CFrame or CFrame.new(0,0,0),
+    Carbon_Rod = workspace:WaitForChild("world"):WaitForChild("items"):FindFirstChild("Carbon Rod") and workspace.world.items["Carbon Rod"].CFrame or CFrame.new(0,0,0),
+    Crab_Cage = workspace:WaitForChild("world"):WaitForChild("items"):FindFirstChild("Crab Cage") and workspace.world.items["Crab Cage"].CFrame or CFrame.new(0,0,0),
+    Fast_Rod = workspace:WaitForChild("world"):WaitForChild("items"):FindFirstChild("Fast Rod") and workspace.world.items["Fast Rod"].CFrame or CFrame.new(0,0,0),
+    Flimsy_Rod = workspace:WaitForChild("world"):WaitForChild("items"):FindFirstChild("Flimsy Rod") and workspace.world.items["Flimsy Rod"].CFrame or CFrame.new(0,0,0),
+    GPS = workspace:WaitForChild("world"):WaitForChild("items"):FindFirstChild("GPS") and workspace.world.items["GPS"].CFrame or CFrame.new(0,0,0),
+    Long_Rod = workspace:WaitForChild("world"):WaitForChild("items"):FindFirstChild("Long Rod") and workspace.world.items["Long Rod"].CFrame or CFrame.new(0,0,0),
+    Lucky_Rod = workspace:WaitForChild("world"):WaitForChild("items"):FindFirstChild("Lucky Rod") and workspace.world.items["Lucky Rod"].CFrame or CFrame.new(0,0,0),
+    Plastic_Rod = workspace:WaitForChild("world"):WaitForChild("items"):FindFirstChild("Plastic Rod") and workspace.world.items["Plastic Rod"].CFrame or CFrame.new(0,0,0),
+    Training_Rod = workspace:WaitForChild("world"):WaitForChild("items"):FindFirstChild("Training Rod") and workspace.world.items["Training Rod"].CFrame or CFrame.new(0,0,0)
+}
+
+-- Create safe part
+local safePart = workspace:FindFirstChild("SafeZone") or Instance.new("Part")
+safePart.Name = "SafeZone"
+safePart.Anchored = true
+safePart.CanCollide = false
+safePart.Transparency = 1
+safePart.Size = Vector3.new(10, 1, 10)
+safePart.CFrame = CFrame.new(workspace.world.spawns.TpSpots.beach.Position + Vector3.new(0, 5, 0))
+safePart.Parent = workspace
+
 -- Create a Window
 local Window = Neverlose:CreateWindow({
     Name = "Fisch 🗿",
@@ -41,7 +71,7 @@ MainTab:CreateToggle({
             autoCastConnection = game.Players.LocalPlayer.CharacterAdded:Connect(function(character)
                 character:WaitForChild("HumanoidRootPart")
                 character.ChildAdded:Connect(function(child)
-                    if child:IsA("Tool") and child:FindFirstChild("events"):WaitForChild("cast") and autoCast then
+                    if child:IsA("Tool") and child:FindFirstChild("events") and child.events:FindFirstChild("cast") and autoCast then
                         task.wait(autoCastDelay)
                         if autoCastMode == "Legit" then
                             game:GetService("VirtualInputManager"):SendMouseButtonEvent(0, 0, 0, true, game.Players.LocalPlayer, 0)
@@ -63,7 +93,7 @@ MainTab:CreateToggle({
 
             autoCastConnection2 = game.Players.LocalPlayer:WaitForChild("PlayerGui").ChildRemoved:Connect(function(GUI)
                 local Tool = game.Players.LocalPlayer.Character and game.Players.LocalPlayer.Character:FindFirstChildOfClass("Tool")
-                if GUI.Name == "reel" and autoCast and Tool and Tool:FindFirstChild("events"):WaitForChild("cast") then
+                if GUI.Name == "reel" and autoCast and Tool and Tool:FindFirstChild("events") and Tool.events:FindFirstChild("cast") then
                     task.wait(autoCastDelay)
                     if autoCastMode == "Legit" then
                         game:GetService("VirtualInputManager"):SendMouseButtonEvent(0, 0, 0, true, game.Players.LocalPlayer, 0)
@@ -179,11 +209,6 @@ MainTab:CreateToggle({
                     end
                 end)
             end)
-
-            if ZoneConnection then
-                ZoneConnection:Disconnect()
-                ZoneConnection = nil
-            end
         end
     end,
 })
@@ -372,13 +397,14 @@ TeleportsTab:CreateDropdown({
     end,
 })
 
+TeleportsTab:CreateLabel("NPCs")
+
+-- Get NPC names for the dropdown
 local formattedNpcNames = {}
 for npcName, _ in pairs(npcSpots) do
     local formattedName = npcName:gsub("_", " "):gsub("(%a)([%w_']*)", function(first, rest) return first:upper() .. rest:lower() end)
     table.insert(formattedNpcNames, formattedName)
 end
-
-TeleportsTab:CreateLabel("NPCs")
 
 TeleportsTab:CreateDropdown({
     Name = "Teleport to NPC",
@@ -396,25 +422,23 @@ TeleportsTab:CreateDropdown({
 
 TeleportsTab:CreateLabel("Items")
 
+-- Get item names for the dropdown
+local formattedItemNames = {}
+for itemName, _ in pairs(itemSpots) do
+    local formattedName = itemName:gsub("_", " ")
+    table.insert(formattedItemNames, formattedName)
+end
+
 TeleportsTab:CreateDropdown({
     Name = "Teleport to Item",
-    Options = {
-        "Bait Crate",
-        "Carbon Rod",
-        "Crab Cage",
-        "Fast Rod",
-        "Flimsy Rod",
-        "GPS",
-        "Long Rod",
-        "Lucky Rod",
-        "Plastic Rod",
-        "Training Rod"
-    },
+    Options = formattedItemNames,
     Flag = "TeleportItem",
     Callback = function(Selected)
-        local itemCFrame = itemSpots[Selected:gsub(" ", "_")]
-        if itemCFrame then
-            local newCFrame = CFrame.new(itemCFrame.Position + Vector3.new(0, 5, 0)) * CFrame.Angles(0, itemCFrame:ToEulerAnglesXYZ())
+        local originalName = Selected:gsub(" ", "_")
+        local itemCFrame = itemSpots[originalName]
+        
+        if itemCFrame and game.Players.LocalPlayer.Character and game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            local newCFrame = CFrame.new(itemCFrame.Position + Vector3.new(0, 5, 0))
             game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = newCFrame
         end
     end,
@@ -450,7 +474,7 @@ local fpsLabel = MiscTab:CreateLabel("FPS: 0")
 
 coroutine.wrap(function()
     while true do
-        FrameCounter += 1
+        FrameCounter = FrameCounter + 1
 
         if (tick() - FrameTimer) >= 1 then
             FPS = FrameCounter
@@ -570,11 +594,6 @@ MiscTab:CreateToggle({
                     end
                 end)
             end)
-
-            if CollarConnection then
-                CollarConnection:Disconnect()
-                CollarConnection = nil
-            end
         end
     end,
 })
@@ -656,6 +675,22 @@ MiscTab:CreateButton({
         AntiDrown = false
         CollarPlayer = false
 
+        if autoCastConnection then
+            autoCastConnection:Disconnect()
+        end
+        if autoCastConnection2 then
+            autoCastConnection2:Disconnect()
+        end
+        if autoReelConnection then
+            autoReelConnection:Disconnect()
+        end
+        if autoShakeConnection then
+            autoShakeConnection:Disconnect()
+        end
+        if CharAddedAntiDrownCon then
+            CharAddedAntiDrownCon:Disconnect()
+        end
+
         if safePart then
             safePart:Destroy()
             safePart = nil
@@ -664,3 +699,6 @@ MiscTab:CreateButton({
         Neverlose:Destroy()
     end,
 })
+
+-- Initialize the UI to ensure it's visible
+Neverlose:SelectTab(MainTab)
