@@ -1,13 +1,6 @@
 -- Load Neverlose UI Library
 local NeverloseLib = loadstring(game:HttpGet("https://raw.githubusercontent.com/shlexware/Neverlose/main/source"))()
 
--- Check if the library loaded correctly
-if NeverloseLib then
-    print("Neverlose UI Library loaded successfully.")
-else
-    warn("Failed to load Neverlose UI Library.")
-end
-
 -- Create the Window
 local Window = NeverloseLib:Window("Ogsunny Hub V1.2.4", "Neverlose", true)
 
@@ -63,7 +56,6 @@ local TeleportsTab = Window:Tab("Teleports")
 LocalPlayer.CharacterAdded:Connect(function(Character)
     LocalCharacter = Character
     HumanoidRootPart = Character:WaitForChild("HumanoidRootPart")
-    print("Character reference updated.")
 end)
 
 -- Function to setup character-specific connections
@@ -91,7 +83,6 @@ function setupCharacterConnections()
             end
         end
     end)
-    print("Character connections set up.")
 end
 
 -- GUI-related connections
@@ -183,7 +174,7 @@ NoclipConnection = RunService.Stepped:Connect(function()
 end)
 
 -- Populate teleport spots
-for _, v in pairs(TpSpotsFolder:GetChildren()) do
+for _, v in pairs(Workspace.world.spawns.TpSpots:GetChildren()) do
     if not table.find(teleportSpots, v.Name) then
         table.insert(teleportSpots, v.Name)
     end
@@ -194,29 +185,24 @@ MainTab:Section("Auto Shake")
 
 MainTab:Toggle("Enable AutoShake", false, function(Value)
     autoShake = Value
-    print("AutoShake toggled:", Value)
 end)
 
 MainTab:Dropdown("AutoShake Method", {"ClickEvent", "KeyCodeEvent"}, function(Value)
     autoShakeMethod = Value
-    print("AutoShake Method set to:", Value)
 end)
 
 MainTab:Slider("AutoShake Delay", 0, 10, 0.1, "seconds", function(Value)
     autoShakeDelay = Value
-    print("AutoShake Delay set to:", Value)
 end)
 
 MainTab:Section("Auto Reel")
 
 MainTab:Toggle("Enable AutoReel", false, function(Value)
     autoReel = Value
-    print("AutoReel toggled:", Value)
 end)
 
 MainTab:Slider("AutoReel Delay", 0, 10, 2, "seconds", function(Value)
     autoReelDelay = Value
-    print("AutoReel Delay set to:", Value)
 end)
 
 MainTab:Section("Auto Cast")
@@ -241,17 +227,14 @@ MainTab:Toggle("Enable AutoCast", false, function(Value)
             Tool.events.cast:FireServer(100)
         end
     end
-    print("AutoCast toggled:", Value)
 end)
 
 MainTab:Dropdown("AutoCast Mode", {"Legit", "Rage"}, function(Value)
     autoCastMode = Value
-    print("AutoCast Mode set to:", Value)
 end)
 
 MainTab:Slider("AutoCast Delay", 0, 10, 2, "seconds", function(Value)
     autoCastDelay = Value
-    print("AutoCast Delay set to:", Value)
 end)
 
 -- Teleports Tab
@@ -259,15 +242,13 @@ TeleportsTab:Section("Teleports")
 
 TeleportsTab:Dropdown("Teleport to Location", teleportSpots, function(Value)
     if teleportSpots and HumanoidRootPart then
-        HumanoidRootPart.CFrame = TpSpotsFolder:FindFirstChild(Value).CFrame + Vector3.new(0, 5, 0)
-        print("Teleported to:", Value)
+        HumanoidRootPart.CFrame = Workspace.world.spawns.TpSpots:FindFirstChild(Value).CFrame + Vector3.new(0, 5, 0)
     end
 end)
 
 TeleportsTab:Dropdown("Teleport to Item", {"Bait_Crate", "Carbon_Rod", "Crab_Cage", "Fast_Rod", "Flimsy_Rod", "GPS", "Long_Rod", "Lucky_Rod", "Plastic_Rod", "Training_Rod"}, function(Value)
     if itemSpots and HumanoidRootPart then
         HumanoidRootPart.CFrame = itemSpots[Value]
-        print("Teleported to item:", Value)
     end
 end)
 
@@ -291,5 +272,4 @@ MainTab:Button("Unload Script", function()
 
     -- Notify the user
     NeverloseLib:Notification("Script Unloaded", "The script has been unloaded successfully.", 5)
-    print("Script unloaded.")
 end)
