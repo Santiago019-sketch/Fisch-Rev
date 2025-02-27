@@ -11,34 +11,47 @@ if not success then
 end
 
 -- Define missing variables
-local npcSpots = {
-    Marc_Merchant = workspace:WaitForChild("world"):WaitForChild("npcs"):WaitForChild("Marc Merchant").HumanoidRootPart.CFrame,
-    Appraiser = workspace:WaitForChild("world"):WaitForChild("npcs"):WaitForChild("Appraiser").HumanoidRootPart.CFrame,
-    Fisherman = workspace:WaitForChild("world"):WaitForChild("npcs"):FindFirstChild("Fisherman") and workspace.world.npcs.Fisherman.HumanoidRootPart.CFrame or CFrame.new(0,0,0)
-}
+local npcSpots = {}
+-- Fill NPC spots with data
+for _, npc in pairs(workspace:WaitForChild("world"):WaitForChild("npcs"):GetChildren()) do
+    if npc:FindFirstChild("HumanoidRootPart") then
+        npcSpots[npc.Name] = npc.HumanoidRootPart.CFrame
+    end
+end
 
-local itemSpots = {
-    Bait_Crate = workspace:WaitForChild("world"):WaitForChild("items"):FindFirstChild("Bait Crate") and workspace.world.items["Bait Crate"].CFrame or CFrame.new(0,0,0),
-    Carbon_Rod = workspace:WaitForChild("world"):WaitForChild("items"):FindFirstChild("Carbon Rod") and workspace.world.items["Carbon Rod"].CFrame or CFrame.new(0,0,0),
-    Crab_Cage = workspace:WaitForChild("world"):WaitForChild("items"):FindFirstChild("Crab Cage") and workspace.world.items["Crab Cage"].CFrame or CFrame.new(0,0,0),
-    Fast_Rod = workspace:WaitForChild("world"):WaitForChild("items"):FindFirstChild("Fast Rod") and workspace.world.items["Fast Rod"].CFrame or CFrame.new(0,0,0),
-    Flimsy_Rod = workspace:WaitForChild("world"):WaitForChild("items"):FindFirstChild("Flimsy Rod") and workspace.world.items["Flimsy Rod"].CFrame or CFrame.new(0,0,0),
-    GPS = workspace:WaitForChild("world"):WaitForChild("items"):FindFirstChild("GPS") and workspace.world.items["GPS"].CFrame or CFrame.new(0,0,0),
-    Long_Rod = workspace:WaitForChild("world"):WaitForChild("items"):FindFirstChild("Long Rod") and workspace.world.items["Long Rod"].CFrame or CFrame.new(0,0,0),
-    Lucky_Rod = workspace:WaitForChild("world"):WaitForChild("items"):FindFirstChild("Lucky Rod") and workspace.world.items["Lucky Rod"].CFrame or CFrame.new(0,0,0),
-    Plastic_Rod = workspace:WaitForChild("world"):WaitForChild("items"):FindFirstChild("Plastic Rod") and workspace.world.items["Plastic Rod"].CFrame or CFrame.new(0,0,0),
-    Training_Rod = workspace:WaitForChild("world"):WaitForChild("items"):FindFirstChild("Training Rod") and workspace.world.items["Training Rod"].CFrame or CFrame.new(0,0,0)
-}
+local itemSpots = {}
+-- Try to find item spots in the world
+for _, item in pairs(workspace:WaitForChild("world"):WaitForChild("items", 5):GetChildren()) do
+    if item:FindFirstChild("Handle") or item:FindFirstChild("PrimaryPart") or item:FindFirstChild("HumanoidRootPart") then
+        local primaryPart = item:FindFirstChild("Handle") or item:FindFirstChild("PrimaryPart") or item:FindFirstChild("HumanoidRootPart")
+        if primaryPart then
+            itemSpots[item.Name] = primaryPart.CFrame
+        end
+    end
+end
 
--- Create safe part
-local safePart = workspace:FindFirstChild("SafeZone") or Instance.new("Part")
-safePart.Name = "SafeZone"
-safePart.Anchored = true
-safePart.CanCollide = false
-safePart.Transparency = 1
-safePart.Size = Vector3.new(10, 1, 10)
-safePart.CFrame = CFrame.new(workspace.world.spawns.TpSpots.beach.Position + Vector3.new(0, 5, 0))
-safePart.Parent = workspace
+-- Define safePart
+local safePart = workspace:FindFirstChild("SafeZone")
+if not safePart then
+    -- Try to find a safe zone in the workspace
+    for _, part in pairs(workspace:GetDescendants()) do
+        if part.Name:match("[Ss]afe[Zz]one") and part:IsA("BasePart") then
+            safePart = part
+            break
+        end
+    end
+    
+    -- If still not found, create a default location (spawn location)
+    if not safePart and game:GetService("Players").LocalPlayer.Character then
+        safePart = Instance.new("Part")
+        safePart.Name = "SafeZone"
+        safePart.Anchored = true
+        safePart.CanCollide = false
+        safePart.Transparency = 1
+        safePart.CFrame = game:GetService("Players").LocalPlayer.Character:GetPrimaryPartCFrame()
+        safePart.Parent = workspace
+    end
+end
 
 -- Create a Window
 local Window = Neverlose:CreateWindow({
@@ -153,10 +166,15 @@ local SelectedZone = nil
 local ZonesList = {}
 
 -- Fill ZonesList with unique fishing zones based on names
-for _, zone in pairs(workspace:WaitForChild("zones"):WaitForChild("fishing"):GetChildren()) do
+for _, zone in pairs(workspace:WaitForChild("zones", 5):WaitForChild("fishing", 5):GetChildren()) do
     if not table.find(ZonesList, zone.Name) then
         table.insert(ZonesList, zone.Name)
     end
+end
+
+-- If ZonesList is empty, add default values
+if #ZonesList == 0 then
+    table.insert(ZonesList, "Default Zone")
 end
 
 MainTab:CreateToggle({
@@ -209,6 +227,11 @@ MainTab:CreateToggle({
                     end
                 end)
             end)
+
+            if ZoneConnection then
+                ZoneConnection:Disconnect()
+                ZoneConnection = nil
+            end
         end
     end,
 })
@@ -347,7 +370,17 @@ MainTab:CreateButton({
     Name = "Sell Fish (Holding)",
     Callback = function()
         print("Sell Fish (Holding)")
-        workspace:WaitForChild("world"):WaitForChild("npcs"):WaitForChild("Marc Merchant"):WaitForChild("merchant"):WaitForChild("sell"):InvokeServer()
+        local merchantPath = workspace:FindFirstChild("world") and 
+                            workspace.world:FindFirstChild("npcs") and 
+                            workspace.world.npcs:FindFirstChild("Marc Merchant") and
+                            workspace.world.npcs["Marc Merchant"]:FindFirstChild("merchant") and
+                            workspace.world.npcs["Marc Merchant"].merchant:FindFirstChild("sell")
+                            
+        if merchantPath then
+            merchantPath:InvokeServer()
+        else
+            print("Merchant not found")
+        end
     end,
 })
 
@@ -355,7 +388,17 @@ MainTab:CreateButton({
     Name = "Sell All Fish",
     Callback = function()
         print("Sell All Fish")
-        workspace:WaitForChild("world"):WaitForChild("npcs"):WaitForChild("Marc Merchant"):WaitForChild("merchant"):WaitForChild("sellall"):InvokeServer()
+        local merchantPath = workspace:FindFirstChild("world") and 
+                            workspace.world:FindFirstChild("npcs") and 
+                            workspace.world.npcs:FindFirstChild("Marc Merchant") and
+                            workspace.world.npcs["Marc Merchant"]:FindFirstChild("merchant") and
+                            workspace.world.npcs["Marc Merchant"].merchant:FindFirstChild("sellall")
+                            
+        if merchantPath then
+            merchantPath:InvokeServer()
+        else
+            print("Merchant not found")
+        end
     end,
 })
 
@@ -363,7 +406,17 @@ MainTab:CreateButton({
     Name = "Appraise Fish (450C$)",
     Callback = function()
         print("Appraise Fish")
-        workspace:WaitForChild("world"):WaitForChild("npcs"):WaitForChild("Appraiser"):WaitForChild("appraiser"):WaitForChild("appraise"):InvokeServer()
+        local appraiserPath = workspace:FindFirstChild("world") and 
+                            workspace.world:FindFirstChild("npcs") and 
+                            workspace.world.npcs:FindFirstChild("Appraiser") and
+                            workspace.world.npcs.Appraiser:FindFirstChild("appraiser") and
+                            workspace.world.npcs.Appraiser.appraiser:FindFirstChild("appraise")
+                            
+        if appraiserPath then
+            appraiserPath:InvokeServer()
+        else
+            print("Appraiser not found")
+        end
     end,
 })
 
@@ -380,8 +433,18 @@ local function capitalizeFirstLetter(str)
 end
 
 local teleportOptions = {}
-for _, spot in pairs(workspace:WaitForChild("world"):WaitForChild("spawns"):WaitForChild("TpSpots"):GetChildren()) do
-    table.insert(teleportOptions, capitalizeFirstLetter(spot.Name))
+-- Safely get TpSpots
+local tpSpots = workspace:FindFirstChild("world") and 
+               workspace.world:FindFirstChild("spawns") and 
+               workspace.world.spawns:FindFirstChild("TpSpots")
+
+if tpSpots then
+    for _, spot in pairs(tpSpots:GetChildren()) do
+        table.insert(teleportOptions, capitalizeFirstLetter(spot.Name))
+    end
+else
+    -- Add default values if TpSpots not found
+    table.insert(teleportOptions, "Spawn")
 end
 
 TeleportsTab:CreateDropdown({
@@ -390,21 +453,34 @@ TeleportsTab:CreateDropdown({
     Flag = "TeleportPlace",
     Callback = function(Selected)
         local actualSpotName = Selected:lower()
-        local selectedPlace = workspace.world.spawns.TpSpots:FindFirstChild(actualSpotName)
-        if selectedPlace and game.Players.LocalPlayer.Character and game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-            game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = selectedPlace.CFrame + Vector3.new(0, 5, 0)
+        local tpSpotsPath = workspace:FindFirstChild("world") and 
+                          workspace.world:FindFirstChild("spawns") and 
+                          workspace.world.spawns:FindFirstChild("TpSpots")
+        
+        if tpSpotsPath then
+            local selectedPlace = tpSpotsPath:FindFirstChild(actualSpotName)
+            if selectedPlace and game.Players.LocalPlayer.Character and game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = selectedPlace.CFrame + Vector3.new(0, 5, 0)
+            end
+        else
+            print("TpSpots not found")
         end
     end,
 })
 
-TeleportsTab:CreateLabel("NPCs")
-
--- Get NPC names for the dropdown
+-- Format NPC names for dropdown menu
 local formattedNpcNames = {}
 for npcName, _ in pairs(npcSpots) do
     local formattedName = npcName:gsub("_", " "):gsub("(%a)([%w_']*)", function(first, rest) return first:upper() .. rest:lower() end)
     table.insert(formattedNpcNames, formattedName)
 end
+
+-- Add default value if list is empty
+if #formattedNpcNames == 0 then
+    table.insert(formattedNpcNames, "No NPCs Found")
+end
+
+TeleportsTab:CreateLabel("NPCs")
 
 TeleportsTab:CreateDropdown({
     Name = "Teleport to NPC",
@@ -422,24 +498,45 @@ TeleportsTab:CreateDropdown({
 
 TeleportsTab:CreateLabel("Items")
 
--- Get item names for the dropdown
-local formattedItemNames = {}
-for itemName, _ in pairs(itemSpots) do
-    local formattedName = itemName:gsub("_", " ")
-    table.insert(formattedItemNames, formattedName)
+local itemDropdownOptions = {}
+for item, _ in pairs(itemSpots) do
+    local formattedItem = item:gsub("_", " "):gsub("(%a)([%w_']*)", function(first, rest) return first:upper() .. rest:lower() end)
+    table.insert(itemDropdownOptions, formattedItem)
+end
+
+-- Add default items if none found
+if #itemDropdownOptions == 0 then
+    local defaultItems = {
+        "Bait Crate",
+        "Carbon Rod",
+        "Crab Cage",
+        "Fast Rod",
+        "Flimsy Rod",
+        "GPS",
+        "Long Rod",
+        "Lucky Rod",
+        "Plastic Rod",
+        "Training Rod"
+    }
+    itemDropdownOptions = defaultItems
 end
 
 TeleportsTab:CreateDropdown({
     Name = "Teleport to Item",
-    Options = formattedItemNames,
+    Options = itemDropdownOptions,
     Flag = "TeleportItem",
     Callback = function(Selected)
-        local originalName = Selected:gsub(" ", "_")
-        local itemCFrame = itemSpots[originalName]
-        
+        local itemKey = Selected:gsub(" ", "_")
+        local itemCFrame = itemSpots[itemKey]
         if itemCFrame and game.Players.LocalPlayer.Character and game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
             local newCFrame = CFrame.new(itemCFrame.Position + Vector3.new(0, 5, 0))
+            if typeof(itemCFrame) == "CFrame" then
+                local _, _, z = itemCFrame:ToEulerAnglesXYZ()
+                newCFrame = newCFrame * CFrame.Angles(0, z, 0)
+            end
             game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = newCFrame
+        else
+            print("Item not found or HumanoidRootPart not found")
         end
     end,
 })
@@ -451,6 +548,8 @@ TeleportsTab:CreateButton({
     Callback = function()
         if safePart and game.Players.LocalPlayer.Character and game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
             game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = safePart.CFrame + Vector3.new(0, 5, 0)
+        else
+            print("SafeZone or HumanoidRootPart not found")
         end
     end,
 })
@@ -463,6 +562,7 @@ local MiscTab = Window:CreateTab({
 
 MiscTab:CreateLabel("Credits")
 MiscTab:CreateLabel("Script made by Palomita")
+MiscTab:CreateLabel("Fixed by Claude")
 
 local FPS = 0
 local FrameCounter = 0
@@ -543,6 +643,11 @@ for _, player in pairs(game.Players:GetPlayers()) do
     table.insert(PlayerList, player.Name)
 end
 
+-- Add default value if list is empty
+if #PlayerList == 0 then
+    table.insert(PlayerList, "No Players Found")
+end
+
 -- Update PlayerList whenever a player joins or leaves
 game.Players.PlayerAdded:Connect(function(player)
     table.insert(PlayerList, player.Name)
@@ -582,18 +687,26 @@ MiscTab:CreateToggle({
                                 end
 
                                 task.wait(1)
-                                while CollarPlayer and blehh.Parent do
-                                    local targetPlayer = game.Players:FindFirstChild(SelectedPlayer)
-                                    if targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("Head") then
-                                        blehh.CFrame = targetPlayer.Character.Head.CFrame * CFrame.new(0, -0.5, 0)
+                                local bobberLoop = coroutine.wrap(function()
+                                    while CollarPlayer and blehh and blehh.Parent do
+                                        local targetPlayer = game.Players:FindFirstChild(SelectedPlayer)
+                                        if targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("Head") then
+                                            blehh.CFrame = targetPlayer.Character.Head.CFrame * CFrame.new(0, -0.5, 0)
+                                        end
+                                        task.wait()
                                     end
-                                    task.wait()
-                                end
+                                end)
+                                bobberLoop()
                             end
                         end)
                     end
                 end)
             end)
+
+            if CollarConnection then
+                CollarConnection:Disconnect()
+                CollarConnection = nil
+            end
         end
     end,
 })
@@ -660,7 +773,14 @@ MiscTab:CreateButton({
                 ["Reset Materials"] = true,
             }
         }
-        loadstring(game:HttpGet("https://raw.githubusercontent.com/CasperFlyModz/discord.gg-rips/main/FPSBooster.lua"))()
+        
+        local success, result = pcall(function()
+            return loadstring(game:HttpGet("https://raw.githubusercontent.com/CasperFlyModz/discord.gg-rips/main/FPSBooster.lua"))()
+        end)
+        
+        if not success then
+            warn("Failed to load FPS Booster:", result)
+        end
     end,
 })
 
@@ -672,33 +792,3 @@ MiscTab:CreateButton({
         autoReel = false
         autoShake = false
         ZoneCast = false
-        AntiDrown = false
-        CollarPlayer = false
-
-        if autoCastConnection then
-            autoCastConnection:Disconnect()
-        end
-        if autoCastConnection2 then
-            autoCastConnection2:Disconnect()
-        end
-        if autoReelConnection then
-            autoReelConnection:Disconnect()
-        end
-        if autoShakeConnection then
-            autoShakeConnection:Disconnect()
-        end
-        if CharAddedAntiDrownCon then
-            CharAddedAntiDrownCon:Disconnect()
-        end
-
-        if safePart then
-            safePart:Destroy()
-            safePart = nil
-        end
-
-        Neverlose:Destroy()
-    end,
-})
-
--- Initialize the UI to ensure it's visible
-Neverlose:SelectTab(MainTab)
