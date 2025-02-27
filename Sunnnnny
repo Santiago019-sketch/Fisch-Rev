@@ -1,24 +1,19 @@
--- Made by ogsunny :3
+-- Made by ogsunny :3 (Fixed version)
 -- Please do not redistribute or use without permission.
 -- Special thanks to the community for their support.
 
--- Load Material UI Library
-local Material = loadstring(game:HttpGet("https://raw.githubusercontent.com/Zewth/Material-UI/master/Source.lua"))()
+-- Load Orion UI Library (more modern and reliable)
+local OrionLib = loadstring(game:HttpGet(('https://raw.githubusercontent.com/shlexware/Orion/main/source')))()
 
--- Initialize the Window
-local Window = Material.Load({
-    Title = "Ogsunny Hub V1.2.3 (BETA)",
-    Style = 1,
-    SizeX = 500,
-    SizeY = 300,
-    Theme = "Dark"
+-- Create the Window
+local Window = OrionLib:MakeWindow({
+    Name = "Ogsunny Hub V1.2.4",
+    HidePremium = true,
+    SaveConfig = true,
+    ConfigFolder = "OgsunnyConfig",
+    IntroEnabled = true,
+    IntroText = "Ogsunny Hub"
 })
-
--- Create Tabs
-local MainTab = Window.New({ Title = "Main" })
-local TeleportsTab = Window.New({ Title = "Teleports" })
-local LocalPlayerTab = Window.New({ Title = "LocalPlayer" })
-local SettingsTab = Window.New({ Title = "Settings" })
 
 -- Tables
 local teleportSpots = {}
@@ -50,8 +45,8 @@ local Players = game:GetService("Players")
 
 -- Locals
 local LocalPlayer = Players.LocalPlayer
-local LocalCharacter = LocalPlayer.Character
-local HumanoidRootPart = LocalCharacter:FindFirstChild("HumanoidRootPart")
+local LocalCharacter = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+local HumanoidRootPart = LocalCharacter:WaitForChild("HumanoidRootPart")
 local ActiveFolder = Workspace:FindFirstChild("active")
 local FishingZonesFolder = Workspace:FindFirstChild("zones"):WaitForChild("fishing")
 local TpSpotsFolder = Workspace:FindFirstChild("world"):WaitForChild("spawns"):WaitForChild("TpSpots")
@@ -81,8 +76,126 @@ local AntiDrown = false
 local CollarPlayer = false
 local Target
 local FreezeChar = false
+local Version = "1.2.4" -- Updated version
 
--- Rest
+-- Create Tabs
+local MainTab = Window:MakeTab({
+    Name = "Main",
+    Icon = "rbxassetid://4483345998",
+    PremiumOnly = false
+})
+
+local TeleportsTab = Window:MakeTab({
+    Name = "Teleports",
+    Icon = "rbxassetid://4483345998",
+    PremiumOnly = false
+})
+
+local LocalPlayerTab = Window:MakeTab({
+    Name = "LocalPlayer",
+    Icon = "rbxassetid://4483345998",
+    PremiumOnly = false
+})
+
+local SettingsTab = Window:MakeTab({
+    Name = "Settings",
+    Icon = "rbxassetid://4483345998",
+    PremiumOnly = false
+})
+
+-- Fix for character references
+LocalPlayer.CharacterAdded:Connect(function(Character)
+    LocalCharacter = Character
+    HumanoidRootPart = Character:WaitForChild("HumanoidRootPart")
+    
+    -- Re-attach character-specific connections
+    setupCharacterConnections()
+end)
+
+-- Function to setup character-specific connections
+function setupCharacterConnections()
+    if autoCastConnection then autoCastConnection:Disconnect() end
+    if CollarConnection then CollarConnection:Disconnect() end
+    
+    autoCastConnection = LocalCharacter.ChildAdded:Connect(function(child)
+        if child:IsA("Tool") and child:FindFirstChild("events") and child.events:FindFirstChild("cast") ~= nil and autoCast then
+            task.wait(autoCastDelay)
+            if autoCastMode == "Legit" then
+                VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, LocalPlayer, 0)
+                HumanoidRootPart.ChildAdded:Connect(function()
+                    if HumanoidRootPart:FindFirstChild("power") ~= nil and HumanoidRootPart.power.powerbar.bar ~= nil then
+                        HumanoidRootPart.power.powerbar.bar.Changed:Connect(function(property)
+                            if property == "Size" then
+                                if HumanoidRootPart.power.powerbar.bar.Size == UDim2.new(1, 0, 1, 0) then
+                                    VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, LocalPlayer, 0)
+                                end
+                            end
+                        end)
+                    end
+                end)
+            elseif autoCastMode == "Rage" then
+                child.events.cast:FireServer(100)
+            end
+        end
+    end)
+    
+    CollarConnection = LocalCharacter.ChildAdded:Connect(function(child)
+        if CollarPlayer and child:IsA("Tool") and Players:FindFirstChild(Target) and Players:FindFirstChild(Target).Character:FindFirstChild("Head") ~= nil then
+            child.ChildAdded:Connect(function(blehh)
+                if blehh.Name == "bobber" then
+                    local RopeConstraint = blehh:FindFirstChildOfClass("RopeConstraint")
+                    if CollarPlayer and RopeConstraint ~= nil then
+                        RopeConstraint.Changed:Connect(function(property)
+                            if property == "Length" then
+                                RopeConstraint.Length = math.huge
+                            end
+                        end)
+                        RopeConstraint.Length = math.huge
+                    end
+                    task.wait(1)
+                    while WaitForSomeone(RenderStepped) do
+                        if CollarPlayer and blehh.Parent ~= nil then
+                            task.wait()
+                            blehh.CFrame = Players:FindFirstChild(Target).Character:FindFirstChild("Head").CFrame + Vector3.new(0, -1, 0)
+                        else
+                            break
+                        end
+                    end
+                end
+            end)
+        end
+    end)
+    
+    ZoneConnection = LocalCharacter.ChildAdded:Connect(function(child)
+        if ZoneCast and child:IsA("Tool") and FishingZonesFolder:FindFirstChild(Zone) ~= nil then
+            child.ChildAdded:Connect(function(blehh)
+                if blehh.Name == "bobber" then
+                    local RopeConstraint = blehh:FindFirstChildOfClass("RopeConstraint")
+                    if ZoneCast and RopeConstraint ~= nil then
+                        RopeConstraint.Changed:Connect(function(property)
+                            if property == "Length" then
+                                RopeConstraint.Length = math.huge
+                            end
+                        end)
+                        RopeConstraint.Length = math.huge
+                    end
+                    task.wait(1)
+                    while WaitForSomeone(RenderStepped) do
+                        if ZoneCast and blehh.Parent ~= nil then
+                            task.wait()
+                            blehh.CFrame = FishingZonesFolder[Zone].CFrame
+                        else
+                            break
+                        end
+                    end
+                end
+            end)
+        end
+    end)
+end
+
+-- GUI-related connections
+if autoreelandshakeConnection then autoreelandshakeConnection:Disconnect() end
 autoreelandshakeConnection = PlayerGUI.ChildAdded:Connect(function(GUI)
     if GUI:IsA("ScreenGui") and GUI.Name == "shakeui" then
         if GUI:FindFirstChild("safezone") ~= nil then
@@ -121,110 +234,42 @@ autoreelandshakeConnection = PlayerGUI.ChildAdded:Connect(function(GUI)
     end
     if GUI:IsA("ScreenGui") and GUI.Name == "reel" then
         if autoReel and ReplicatedStorage:WaitForChild("events"):WaitForChild("reelfinished") ~= nil then
-            repeat task.wait(autoReelDelay) ReplicatedStorage.events.reelfinished:FireServer(100, false) until GUI == nil
+            repeat task.wait(autoReelDelay) ReplicatedStorage.events.reelfinished:FireServer(100, false) until GUI == nil or GUI.Parent == nil
         end
     end
 end)
 
-autoCastConnection = LocalCharacter.ChildAdded:Connect(function(child)
-    if child:IsA("Tool") and child:FindFirstChild("events"):WaitForChild("cast") ~= nil and autoCast then
-        task.wait(autoCastDelay)
-        if autoCastMode == "Legit" then
-            VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, LocalPlayer, 0)
-            HumanoidRootPart.ChildAdded:Connect(function()
-                if HumanoidRootPart:FindFirstChild("power") ~= nil and HumanoidRootPart.power.powerbar.bar ~= nil then
-                    HumanoidRootPart.power.powerbar.bar.Changed:Connect(function(property)
-                        if property == "Size" then
-                            if HumanoidRootPart.power.powerbar.bar.Size == UDim2.new(1, 0, 1, 0) then
-                                VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, LocalPlayer, 0)
-                            end
-                        end
-                    end)
-                end
-            end)
-        elseif autoCastMode == "Rage" then
-            child.events.cast:FireServer(100)
-        end
-    end
-end)
-
+if autoCastConnection2 then autoCastConnection2:Disconnect() end
 autoCastConnection2 = PlayerGUI.ChildRemoved:Connect(function(GUI)
-    local Tool = LocalCharacter:FindFirstChildOfClass("Tool")
-    if GUI.Name == "reel" and autoCast and Tool ~= nil and Tool:FindFirstChild("events"):WaitForChild("cast") ~= nil then
-        task.wait(autoCastDelay)
-        if autoCastMode == "Legit" then
-            VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, LocalPlayer, 0)
-            HumanoidRootPart.ChildAdded:Connect(function()
-                if HumanoidRootPart:FindFirstChild("power") ~= nil and HumanoidRootPart.power.powerbar.bar ~= nil then
-                    HumanoidRootPart.power.powerbar.bar.Changed:Connect(function(property)
-                        if property == "Size" then
-                            if HumanoidRootPart.power.powerbar.bar.Size == UDim2.new(1, 0, 1, 0) then
-                                VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, LocalPlayer, 0)
+    if GUI.Name == "reel" then
+        local Tool = LocalCharacter:FindFirstChildOfClass("Tool")
+        if autoCast and Tool ~= nil and Tool:FindFirstChild("events") and Tool.events:FindFirstChild("cast") ~= nil then
+            task.wait(autoCastDelay)
+            if autoCastMode == "Legit" then
+                VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, LocalPlayer, 0)
+                HumanoidRootPart.ChildAdded:Connect(function()
+                    if HumanoidRootPart:FindFirstChild("power") ~= nil and HumanoidRootPart.power.powerbar.bar ~= nil then
+                        HumanoidRootPart.power.powerbar.bar.Changed:Connect(function(property)
+                            if property == "Size" then
+                                if HumanoidRootPart.power.powerbar.bar.Size == UDim2.new(1, 0, 1, 0) then
+                                    VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, LocalPlayer, 0)
+                                end
                             end
-                        end
-                    end)
-                end
-            end)
-        elseif autoCastMode == "Rage" then
-            Tool.events.cast:FireServer(100)
+                        end)
+                    end
+                end)
+            elseif autoCastMode == "Rage" then
+                Tool.events.cast:FireServer(100)
+            end
         end
     end
 end)
 
-ZoneConnection = LocalCharacter.ChildAdded:Connect(function(child)
-    if ZoneCast and child:IsA("Tool") and FishingZonesFolder:FindFirstChild(Zone) ~= nil then
-        child.ChildAdded:Connect(function(blehh)
-            if blehh.Name == "bobber" then
-                local RopeConstraint = blehh:FindFirstChildOfClass("RopeConstraint")
-                if ZoneCast and RopeConstraint ~= nil then
-                    RopeConstraint.Changed:Connect(function(property)
-                        if property == "Length" then
-                            RopeConstraint.Length = math.huge
-                        end
-                    end)
-                    RopeConstraint.Length = math.huge
-                end
-                task.wait(1)
-                while WaitForSomeone(RenderStepped) do
-                    if ZoneCast and blehh.Parent ~= nil then
-                        task.wait()
-                        blehh.CFrame = FishingZonesFolder[Zone].CFrame
-                    else
-                        break
-                    end
-                end
-            end
-        end)
-    end
-end)
+-- Setup initial character connections
+setupCharacterConnections()
 
-CollarConnection = LocalCharacter.ChildAdded:Connect(function(child)
-    if CollarPlayer and child:IsA("Tool") and Players:FindFirstChild(Target).Character:FindFirstChild("Head") ~= nil then
-        child.ChildAdded:Connect(function(blehh)
-            if blehh.Name == "bobber" then
-                local RopeConstraint = blehh:FindFirstChildOfClass("RopeConstraint")
-                if CollarPlayer and RopeConstraint ~= nil then
-                    RopeConstraint.Changed:Connect(function(property)
-                        if property == "Length" then
-                            RopeConstraint.Length = math.huge
-                        end
-                    end)
-                    RopeConstraint.Length = math.huge
-                end
-                task.wait(1)
-                while WaitForSomeone(RenderStepped) do
-                    if CollarPlayer and blehh.Parent ~= nil then
-                        task.wait()
-                        blehh.CFrame = Players:FindFirstChild(Target).Character:FindFirstChild("Head").CFrame + Vector3.new(0, -1, 0)
-                    else
-                        break
-                    end
-                end
-            end
-        end)
-    end
-end)
-
+-- Noclip
+if NoclipConnection then NoclipConnection:Disconnect() end
 NoclipConnection = RunService.Stepped:Connect(function()
     if Noclip then
         if LocalCharacter ~= nil then
@@ -237,12 +282,17 @@ NoclipConnection = RunService.Stepped:Connect(function()
     end
 end)
 
+-- SafeZone
 local SafeZone = Instance.new("Part")
 SafeZone.Parent = Workspace
 SafeZone.Size = Vector3.new(50, 2, 50)
 SafeZone.CFrame = CFrame.new(9999, 9999, 9999)
 SafeZone.Anchored = true
+SafeZone.Name = "OgsunnySafeZone"
+SafeZone.Transparency = 0.5
+SafeZone.BrickColor = BrickColor.new("Bright blue")
 
+-- Populate fishing zones
 for _, v in pairs(FishingZonesFolder:GetChildren()) do
     if not table.find(fisktable, v.Name) then
         table.insert(fisktable, v.Name)
@@ -255,12 +305,14 @@ FishingZonesFolder.ChildAdded:Connect(function(child)
     end
 end)
 
+-- Populate teleport spots
 for _, v in pairs(TpSpotsFolder:GetChildren()) do
     if not table.find(teleportSpots, v.Name) then
         table.insert(teleportSpots, v.Name)
     end
 end
 
+-- Populate NPCs
 for _, v in pairs(NpcFolder:GetChildren()) do
     if not table.find(racistPeople, v.Name) and v.Name ~= "mirror Area" then
         table.insert(racistPeople, v.Name)
@@ -273,74 +325,77 @@ NpcFolder.ChildAdded:Connect(function(child)
     end
 end)
 
--- Main Tab
-local AutoShakeGroup = MainTab.Section({ Title = "AutoShake" })
-local AutoReelGroup = MainTab.Section({ Title = "AutoReel" })
-local AutoCastGroup = MainTab.Section({ Title = "AutoCast" })
-local FishUtilitiesGroup = MainTab.Section({ Title = "Fish (🐟) Utilities" })
-local ZoneCastGroup = MainTab.Section({ Title = "ZoneCast" })
-local CollarPlayerGroup = MainTab.Section({ Title = "CollarPlayer" })
+-- Main Tab UI
+MainTab:AddSection({
+    Name = "Auto Shake"
+})
 
-AutoShakeGroup.Toggle({
-    Title = "Enabled",
+MainTab:AddToggle({
+    Name = "Enable AutoShake",
     Default = false,
-    Flag = "AutoShake",
     Callback = function(Value)
         autoShake = Value
-    end
+    end    
 })
 
-AutoShakeGroup.Dropdown({
-    Title = "Auto Shake Method",
+MainTab:AddDropdown({
+    Name = "AutoShake Method",
+    Default = "KeyCodeEvent",
     Options = {"ClickEvent", "KeyCodeEvent"},
-    Default = autoShakeMethod,
-    Flag = "AutoShakeMode",
     Callback = function(Value)
         autoShakeMethod = Value
-    end
+    end    
 })
 
-AutoShakeGroup.Slider({
-    Title = "AutoShake Delay",
-    Default = 0.1,
+MainTab:AddSlider({
+    Name = "AutoShake Delay",
     Min = 0,
     Max = 10,
-    Rounding = 1,
-    Flag = "AutoShakeDelay",
+    Default = 0.1,
+    Color = Color3.fromRGB(255, 185, 0),
+    Increment = 0.1,
+    ValueName = "seconds",
     Callback = function(Value)
         autoShakeDelay = Value
-    end
+    end    
 })
 
-AutoReelGroup.Toggle({
-    Title = "Enabled",
+MainTab:AddSection({
+    Name = "Auto Reel"
+})
+
+MainTab:AddToggle({
+    Name = "Enable AutoReel",
     Default = false,
-    Flag = "AutoReel",
     Callback = function(Value)
         autoReel = Value
-    end
+    end    
 })
 
-AutoReelGroup.Slider({
-    Title = "AutoReel Delay",
-    Default = 2,
+MainTab:AddSlider({
+    Name = "AutoReel Delay",
     Min = 0,
     Max = 10,
-    Rounding = 1,
-    Flag = "AutoReelDelay",
+    Default = 2,
+    Color = Color3.fromRGB(255, 185, 0),
+    Increment = 0.1,
+    ValueName = "seconds",
     Callback = function(Value)
         autoReelDelay = Value
-    end
+    end    
 })
 
-AutoCastGroup.Toggle({
-    Title = "Enabled",
+MainTab:AddSection({
+    Name = "Auto Cast"
+})
+
+MainTab:AddToggle({
+    Name = "Enable AutoCast",
     Default = false,
-    Flag = "AutoCast",
     Callback = function(Value)
         autoCast = Value
         local Tool = LocalCharacter:FindFirstChildOfClass("Tool")
-        if Tool and Tool:FindFirstChild("events"):WaitForChild("cast") and Value then
+        if Tool and Tool:FindFirstChild("events") and Tool.events:FindFirstChild("cast") and Value then
             task.wait(autoCastDelay)
             if autoCastMode == "Legit" then
                 VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, LocalPlayer, 0)
@@ -357,287 +412,368 @@ AutoCastGroup.Toggle({
                 Tool.events.cast:FireServer(100)
             end
         end
-    end
+    end    
 })
 
-AutoCastGroup.Slider({
-    Title = "AutoCast Delay",
-    Default = 2,
-    Min = 0,
-    Max = 10,
-    Rounding = 1,
-    Flag = "AutoCastDelay",
-    Callback = function(Value)
-        autoCastDelay = Value
-    end
-})
-
-AutoCastGroup.Dropdown({
-    Title = "Auto Cast Mode",
+MainTab:AddDropdown({
+    Name = "AutoCast Mode",
+    Default = "Legit",
     Options = {"Legit", "Rage"},
-    Default = autoCastMode,
-    Flag = "AutoCastMode",
     Callback = function(Value)
         autoCastMode = Value
-    end
+    end    
 })
 
-FishUtilitiesGroup.Button({
-    Title = "Sell a fish",
+MainTab:AddSlider({
+    Name = "AutoCast Delay",
+    Min = 0,
+    Max = 10,
+    Default = 2,
+    Color = Color3.fromRGB(255, 185, 0),
+    Increment = 0.1,
+    ValueName = "seconds",
+    Callback = function(Value)
+        autoCastDelay = Value
+    end    
+})
+
+MainTab:AddSection({
+    Name = "Fish Utilities"
+})
+
+MainTab:AddButton({
+    Name = "Sell Fish",
     Callback = function()
-        Workspace:WaitForChild("world"):WaitForChild("npcs"):WaitForChild("Marc Merchant"):WaitForChild("merchant"):WaitForChild("sell"):InvokeServer()
-    end
+        local success, err = pcall(function()
+            Workspace:WaitForChild("world"):WaitForChild("npcs"):WaitForChild("Marc Merchant"):WaitForChild("merchant"):WaitForChild("sell"):InvokeServer()
+        end)
+        
+        if success then
+            OrionLib:MakeNotification({
+                Name = "Success",
+                Content = "Fish sold successfully!",
+                Image = "rbxassetid://4483345998",
+                Time = 3
+            })
+        else
+            OrionLib:MakeNotification({
+                Name = "Error",
+                Content = "Failed to sell fish. Try again.",
+                Image = "rbxassetid://4483345998",
+                Time = 3
+            })
+        end
+    end    
 })
 
-FishUtilitiesGroup.Button({
-    Title = "Sell ALL fish",
+MainTab:AddButton({
+    Name = "Sell ALL Fish",
     Callback = function()
-        Workspace:WaitForChild("world"):WaitForChild("npcs"):WaitForChild("Marc Merchant"):WaitForChild("merchant"):WaitForChild("sellall"):InvokeServer()
-    end
+        local success, err = pcall(function()
+            Workspace:WaitForChild("world"):WaitForChild("npcs"):WaitForChild("Marc Merchant"):WaitForChild("merchant"):WaitForChild("sellall"):InvokeServer()
+        end)
+        
+        if success then
+            OrionLib:MakeNotification({
+                Name = "Success",
+                Content = "All fish sold successfully!",
+                Image = "rbxassetid://4483345998",
+                Time = 3
+            })
+        else
+            OrionLib:MakeNotification({
+                Name = "Error",
+                Content = "Failed to sell all fish. Try again.",
+                Image = "rbxassetid://4483345998",
+                Time = 3
+            })
+        end
+    end    
 })
 
-FishUtilitiesGroup.Button({
-    Title = "Appraise fish 🐟 (450C$)",
+MainTab:AddButton({
+    Name = "Appraise Fish (450C$)",
     Callback = function()
-        Workspace:WaitForChild("world"):WaitForChild("npcs"):WaitForChild("Appraiser"):WaitForChild("appraiser"):WaitForChild("appraise"):InvokeServer()
-    end
+        local success, err = pcall(function()
+            Workspace:WaitForChild("world"):WaitForChild("npcs"):WaitForChild("Appraiser"):WaitForChild("appraiser"):WaitForChild("appraise"):InvokeServer()
+        end)
+        
+        if success then
+            OrionLib:MakeNotification({
+                Name = "Success",
+                Content = "Fish appraised successfully!",
+                Image = "rbxassetid://4483345998",
+                Time = 3
+            })
+        else
+            OrionLib:MakeNotification({
+                Name = "Error",
+                Content = "Failed to appraise fish. Try again.",
+                Image = "rbxassetid://4483345998",
+                Time = 3
+            })
+        end
+    end    
 })
 
-ZoneCastGroup.Toggle({
-    Title = "Enabled",
+MainTab:AddSection({
+    Name = "Zone Cast"
+})
+
+MainTab:AddToggle({
+    Name = "Enable ZoneCast",
     Default = false,
-    Flag = "ZoneCast",
     Callback = function(Value)
         ZoneCast = Value
-    end
+    end    
 })
 
-ZoneCastGroup.Dropdown({
-    Title = "Zone",
+MainTab:AddDropdown({
+    Name = "Choose Zone",
+    Default = "Brine Pool",
     Options = fisktable,
-    Default = Zone,
-    Flag = "ZoneCastValue",
     Callback = function(Value)
         Zone = Value
-    end
+    end    
 })
 
-CollarPlayerGroup.Toggle({
-    Title = "Enabled",
+MainTab:AddSection({
+    Name = "Collar Player"
+})
+
+-- Function to get player list
+local function GetPlayerList()
+    local players = {}
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer then
+            table.insert(players, player.Name)
+        end
+    end
+    return players
+end
+
+MainTab:AddToggle({
+    Name = "Enable CollarPlayer",
     Default = false,
-    Flag = "CollarPlayer",
     Callback = function(Value)
         CollarPlayer = Value
-    end
+    end    
 })
 
-CollarPlayerGroup.Dropdown({
-    Title = "Player",
-    Options = function()
-        local players = {}
-        for _, player in ipairs(Players:GetPlayers()) do
-            if player ~= LocalPlayer then
-                table.insert(players, player.Name)
-            end
-        end
-        return players
-    end,
+local targetDropdown = MainTab:AddDropdown({
+    Name = "Select Target",
     Default = "",
-    Flag = "CollarTarget",
+    Options = GetPlayerList(),
     Callback = function(Value)
         Target = Value
-    end
+    end    
 })
 
--- Teleports Tab
-local TeleportsGroup = TeleportsTab.Section({ Title = "Teleports" })
+-- Update player list periodically
+task.spawn(function()
+    while task.wait(5) do
+        targetDropdown:Refresh(GetPlayerList(), true)
+    end
+end)
 
-TeleportsGroup.Dropdown({
-    Title = "Place teleport",
-    Options = teleportSpots,
+-- Teleports Tab
+TeleportsTab:AddSection({
+    Name = "Teleports"
+})
+
+TeleportsTab:AddDropdown({
+    Name = "Teleport to Location",
     Default = "",
-    Flag = "PlaceTeleport",
+    Options = teleportSpots,
     Callback = function(Value)
         if teleportSpots and HumanoidRootPart then
             HumanoidRootPart.CFrame = TpSpotsFolder:FindFirstChild(Value).CFrame + Vector3.new(0, 5, 0)
         end
-    end
+    end    
 })
 
-TeleportsGroup.Dropdown({
-    Title = "Teleport to Npc",
-    Options = racistPeople,
+TeleportsTab:AddDropdown({
+    Name = "Teleport to NPC",
     Default = "",
-    Flag = "NPCTeleport",
+    Options = racistPeople,
     Callback = function(Value)
         if racistPeople and HumanoidRootPart then
             HumanoidRootPart.CFrame = NpcFolder:FindFirstChild(Value):WaitForChild("HumanoidRootPart").CFrame + Vector3.new(0, 1, 0)
         end
-    end
+    end    
 })
 
-TeleportsGroup.Dropdown({
-    Title = "Teleport to item",
-    Options = {"Bait_Crate", "Carbon_Rod", "Crab_Cage", "Fast_Rod", "Flimsy_Rod", "GPS", "Long_Rod", "Lucky_Rod", "Plastic_Rod", "Training_Rod"},
+TeleportsTab:AddDropdown({
+    Name = "Teleport to Item",
     Default = "",
-    Flag = "ItemTeleport",
+    Options = {"Bait_Crate", "Carbon_Rod", "Crab_Cage", "Fast_Rod", "Flimsy_Rod", "GPS", "Long_Rod", "Lucky_Rod", "Plastic_Rod", "Training_Rod"},
     Callback = function(Value)
         if itemSpots and HumanoidRootPart then
             HumanoidRootPart.CFrame = itemSpots[Value]
         end
-    end
+    end    
 })
 
-local TeleportToSafeZoneGroup = TeleportsTab.Section({ Title = "Safe Zone" })
+TeleportsTab:AddSection({
+    Name = "Safe Zone"
+})
 
-TeleportToSafeZoneGroup.Button({
-    Title = "Teleport to safe zone",
+TeleportsTab:AddButton({
+    Name = "Teleport to Safe Zone",
     Callback = function()
         HumanoidRootPart.CFrame = SafeZone.CFrame + Vector3.new(0, 2, 0)
-    end
+    end    
 })
 
 -- LocalPlayer Tab
-local LocalPlayerGroup = LocalPlayerTab.Section({ Title = "LocalPlayer" })
-
-LocalPlayerGroup.Toggle({
-    Title = "Noclip",
-    Default = false,
-    Flag = "Noclip",
-    Callback = function(Value)
-        Noclip = Value
-    end
+LocalPlayerTab:AddSection({
+    Name = "Player Modifications"
 })
 
-LocalPlayerGroup.Toggle({
-    Title = "Disable Oxygen",
+LocalPlayerTab:AddToggle({
+    Name = "Noclip",
     Default = false,
-    Flag = "AntiDrown",
+    Callback = function(Value)
+        Noclip = Value
+    end    
+})
+
+LocalPlayerTab:AddToggle({
+    Name = "Anti-Drown",
+    Default = false,
     Callback = function(Value)
         AntiDrown = Value
         if Value then
-            if LocalCharacter and LocalCharacter:FindFirstChild("client"):WaitForChild("oxygen") and LocalCharacter.client.oxygen.Enabled then
+            if LocalCharacter and LocalCharacter:FindFirstChild("client") and LocalCharacter.client:FindFirstChild("oxygen") and LocalCharacter.client.oxygen.Enabled then
                 LocalCharacter.client.oxygen.Enabled = false
             end
-            CharAddedAntiDrownCon = LocalPlayer.CharacterAdded:Connect(function()
-                if LocalCharacter and LocalCharacter:FindFirstChild("client"):WaitForChild("oxygen") and LocalCharacter.client.oxygen.Enabled and AntiDrown then
-                    LocalCharacter.client.oxygen.Enabled = false
+            if CharAddedAntiDrownCon then CharAddedAntiDrownCon:Disconnect() end
+            CharAddedAntiDrownCon = LocalPlayer.CharacterAdded:Connect(function(char)
+                if AntiDrown then
+                    local oxygenScript = char:WaitForChild("client"):WaitForChild("oxygen", 5)
+                    if oxygenScript and oxygenScript.Enabled then
+                        oxygenScript.Enabled = false
+                    end
                 end
             end)
         else
-            if LocalCharacter and LocalCharacter:FindFirstChild("client"):WaitForChild("oxygen") and not LocalCharacter.client.oxygen.Enabled then
+            if LocalCharacter and LocalCharacter:FindFirstChild("client") and LocalCharacter.client:FindFirstChild("oxygen") and not LocalCharacter.client.oxygen.Enabled then
                 LocalCharacter.client.oxygen.Enabled = true
             end
+            if CharAddedAntiDrownCon then CharAddedAntiDrownCon:Disconnect() end
         end
-    end
+    end    
 })
 
-local ResetRodGroup = LocalPlayerTab.Section({ Title = "Reset" })
+LocalPlayerTab:AddSection({
+    Name = "Fishing Tools"
+})
 
-ResetRodGroup.Button({
-    Title = "Reset rod",
+LocalPlayerTab:AddButton({
+    Name = "Reset Rod",
     Callback = function()
         local tool = LocalCharacter:FindFirstChildOfClass("Tool")
-        if tool and tool:FindFirstChild("events"):WaitForChild("reset") then
+        if tool and tool:FindFirstChild("events") and tool.events:FindFirstChild("reset") then
             tool.events.reset:FireServer()
+            OrionLib:MakeNotification({
+                Name = "Success",
+                Content = "Rod reset successfully!",
+                Image = "rbxassetid://4483345998",
+                Time = 3
+            })
+        else
+            OrionLib:MakeNotification({
+                Name = "Error",
+                Content = "No fishing rod equipped or reset event not found.",
+                Image = "rbxassetid://4483345998",
+                Time = 3
+            })
         end
-    end
+    end    
 })
 
-local AntiAfkGroup = LocalPlayerTab.Section({ Title = "AntiAFK" })
+LocalPlayerTab:AddSection({
+    Name = "Anti-AFK"
+})
 
-AntiAfkGroup.Button({
-    Title = "Anti-AFK",
+LocalPlayerTab:AddButton({
+    Name = "Enable Anti-AFK",
     Callback = function()
-        Material.Notify({ Title = "Anti-AFK", Description = "Anti-AFK is now running!", Duration = 3 })
-        LocalPlayer.Idled:Connect(function()
+        local antiAFKConnection = LocalPlayer.Idled:Connect(function()
             VirtualUser:CaptureController()
             VirtualUser:ClickButton2(Vector2.new())
         end)
-    end
+        
+        OrionLib:MakeNotification({
+            Name = "Anti-AFK",
+            Content = "Anti-AFK is now running! You won't be kicked for inactivity.",
+            Image = "rbxassetid://4483345998",
+            Time = 5
+        })
+    end    
 })
 
-local FreezeCharacterGroup = LocalPlayerTab.Section({ Title = "Freeze Character" })
+LocalPlayerTab:AddSection({
+    Name = "Character Control"
+})
 
-FreezeCharacterGroup.Toggle({
-    Title = "Enabled",
+LocalPlayerTab:AddToggle({
+    Name = "Freeze Character",
     Default = false,
-    Flag = "FreezeCharacter",
     Callback = function(Value)
         local oldpos = HumanoidRootPart.CFrame
         FreezeChar = Value
-        task.wait()
-        while WaitForSomeone(RenderStepped) do
-            if FreezeChar and HumanoidRootPart then
-                task.wait()
-                HumanoidRootPart.CFrame = oldpos
-            else
-                break
-            end
+        
+        if FreezeChar then
+            if freezeLoop then freezeLoop:Disconnect() end
+            freezeLoop = RunService.Heartbeat:Connect(function()
+                if HumanoidRootPart and FreezeChar then
+                    HumanoidRootPart.CFrame = oldpos
+                end
+            end)
+        else
+            if freezeLoop then freezeLoop:Disconnect() end
         end
-    end
+    end    
 })
 
 -- Settings Tab
-local SettingsGroup = SettingsTab.Section({ Title = "Settings" })
-local CreditsGroup = SettingsTab.Section({ Title = "Credits" })
+SettingsTab:AddSection({
+    Name = "Settings"
+})
 
-CreditsGroup.Label({ Title = "Made by ogsunny!" })
-CreditsGroup.Label({ Title = "Made with love and hate :3" })
-
-CreditsGroup.Button({
-    Title = "Copy Ogsunny Discord Link",
+SettingsTab:AddButton({
+    Name = "Unload Script",
     Callback = function()
-        setclipboard('https://discord.gg/DEkfE99JFh')
+        -- Disconnect all connections
+if autoreelandshakeConnection then autoreelandshakeConnection:Disconnect() end
+if autoCastConnection then autoCastConnection:Disconnect() end
+if autoCastConnection2 then autoCastConnection2:Disconnect() end
+if CollarConnection then CollarConnection:Disconnect() end
+if ZoneConnection then ZoneConnection:Disconnect() end
+if NoclipConnection then NoclipConnection:Disconnect() end
+if CharAddedAntiDrownCon then CharAddedAntiDrownCon:Disconnect() end
+if freezeLoop then freezeLoop:Disconnect() end
+
+-- Remove GUI elements
+for _, v in pairs(PlayerGUI:GetChildren()) do
+    if v:IsA("ScreenGui") and (v.Name == "shakeui" or v.Name == "reel") then
+        v:Destroy()
     end
+end
+
+-- Remove SafeZone
+if Workspace:FindFirstChild("OgsunnySafeZone") then
+    Workspace.OgsunnySafeZone:Destroy()
+end
+
+-- Unload the Orion UI Library
+OrionLib:Destroy()
+
+-- Notify the user that the script has been unloaded
+OrionLib:MakeNotification({
+    Name = "Script Unloaded",
+    Content = "The script has been unloaded successfully.",
+    Image = "rbxassetid://4483345998",
+    Time = 5
 })
-
-CreditsGroup.Button({
-    Title = "Copy Main Discord Link",
-    Callback = function()
-        setclipboard('https://discord.gg/VudXCDCaBN')
-    end
-})
-
-CreditsGroup.Label({ Title = "البرود يا جماعه هو الحل" })
-
-SettingsGroup.Button({
-    Title = "Unload",
-    Callback = function()
-        Window:Unload()
-    end
-})
-
-SettingsGroup.Keybind({
-    Title = "Menu Keybind",
-    Default = Enum.KeyCode.End,
-    Flag = "MenuKeybind",
-    Callback = function(Key)
-        Window.Keybind = Key
-    end
-})
-
--- Notify the user
-Material.Notify({
-    Title = "Ogsunny Hub",
-    Description = "Script loaded successfully!",
-    Duration = 3
-})
-
--- Check for updates
-task.spawn(function()
-    local success, LatestVer = pcall(function()
-        local version = game:HttpGet("https://raw.githubusercontent.com/kylosilly/femboyware/refs/heads/main/fischver")
-        return HttpService:JSONDecode(version)
-    end)
-
-    if success then
-        if Version ~= LatestVer then
-            Material.Notify({
-                Title = "Update Available",
-                Description = "You are using an outdated version of the Ogsunny script. Join our Discord for the latest version.",
-                Duration = 5
-            })
-        end
-    end
-end)
