@@ -1,5 +1,7 @@
+-- Define the main API table
 local FischAPI = {}
 
+-- Initialize services and variables
 local VIM = game:GetService("VirtualInputManager")
 local GuiService = game:GetService("GuiService")
 local LocalPlayer = game.Players.LocalPlayer
@@ -8,6 +10,7 @@ local RunService = game:GetService("RunService")
 
 local VI = {}
 
+-- Define options with default values
 local Options = {
     AutoShake2 = false, -- Only Enter shake mode
     AutoShakeDelay = 0.3,
@@ -21,6 +24,7 @@ local Options = {
     AutoSellDelay = 3
 }
 
+-- Define internal variables
 local Internal = {
     AutoMinigameDownPerUp = 2,
     AutoMinigameDownPerUpInternal = 2,
@@ -54,17 +58,17 @@ else
         print("[" .. title .. "] " .. message)
     end
     NEVERLOSE = {
-        Notification = function() 
+        Notification = function()
             return {
                 Notify = BasicNotify
             }
         end,
         Theme = function() end,
-        AddWindow = function() 
+        AddWindow = function()
             return {
-                AddTab = function() 
+                AddTab = function()
                     return {
-                        AddSection = function() 
+                        AddSection = function()
                             return {
                                 AddToggle = function() end,
                                 AddSlider = function() end,
@@ -83,13 +87,13 @@ else
     }
 end
 
-local Notification = NEVERLOSE.Notification();
+local Notification = NEVERLOSE.Notification()
 
 if NEVERLOSE.Theme then
     NEVERLOSE:Theme("dark")
 end
 
---UI
+-- UI Initialization
 for Setting, Value in pairs(Options) do
     if type(Value) == "boolean" then
         UI[Setting] = function(Val)
@@ -101,10 +105,10 @@ end
 -- Fixed UI initialization
 function UI.Initialize()
     if Internal.UILoaded then return end
-    
+
     local success, err = pcall(function()
-        --UI
-        local Windows = NEVERLOSE:AddWindow("oggsunny","oggsunny - Fisch - V0.0.7 - credit to oggsunny")
+        -- Create UI windows and tabs
+        local Windows = NEVERLOSE:AddWindow("oggsunny", "oggsunny - Fisch - V0.0.7 - credit to oggsunny")
 
         local FishingTab = Windows:AddTab("Fishing", "earth")
         local Interactions = Windows:AddTab("Interactions", "list")
@@ -115,7 +119,7 @@ function UI.Initialize()
         local CreditsSection = FishingTab:AddSection("Credits", "right")
         local Teleports = AreaTeleportsTab:AddSection("Teleports", "left")
         local Actions = Interactions:AddSection("Actions", "left")
-        
+
         -- Auto Sell section
         local SellSection = Interactions:AddSection("Auto Sell", "right")
         SellSection:AddToggle("Auto Sell", false, UI.AutoSell)
@@ -130,9 +134,9 @@ function UI.Initialize()
         Convenience:AddToggle("Float On Water", false, UI.FloatOnWater)
         Convenience:AddLabel("Turn ON to walk around and choose spot.")
         Convenience:AddLabel("Turn OFF to choose your position.")
-        Convenience:AddToggle("Lock Position", false, function(v) 
+        Convenience:AddToggle("Lock Position", false, function(v)
             Internal.LockedPosition = game.Players.LocalPlayer.Character.HumanoidRootPart.Position
-            UI.Lock(v) 
+            UI.Lock(v)
         end)
 
         -- Core fishing mechanics
@@ -143,12 +147,12 @@ function UI.Initialize()
         MechanicsSection:AddToggle("Auto Reel (Blatant)", false, UI.AutoMinigameBlatant)
         MechanicsSection:AddToggle("Auto Cast", false, UI.AutoCast)
 
-        -- Teleport locations from pzgdCbNN.txt
+        -- Teleport locations
         Teleports:AddButton("Ancient Isle Teleport", function()
             local player = game.Players.LocalPlayer
             local character = player.Character or player.CharacterAdded:Wait()
             local targetPart = workspace.world.map["Ancient Isle"].Terrain:GetChildren()[305]
-            
+
             if targetPart and character then
                 local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
                 if humanoidRootPart then
@@ -161,12 +165,12 @@ function UI.Initialize()
                 Notification:Notify("error", "Error", "Target location not found!", 3)
             end
         end)
-        
+
         Teleports:AddButton("Roslit Hamlet Teleport", function()
             local player = game.Players.LocalPlayer
             local character = player.Character or player.CharacterAdded:Wait()
             local teleportLocation = workspace.zones.player:FindFirstChild("Roslit Hamlet")
-            
+
             if teleportLocation and character then
                 character:SetPrimaryPartCFrame(teleportLocation.CFrame)
                 Notification:Notify("info", "Teleported", "Successfully teleported to Roslit Hamlet", 3)
@@ -174,7 +178,7 @@ function UI.Initialize()
                 Notification:Notify("error", "Error", "Teleport location not found!", 3)
             end
         end)
-        
+
         Teleports:AddButton("Moosewood Teleport", function()
             local zone = workspace.zones.player:FindFirstChild("Moosewood")
             if zone and zone:IsA("BasePart") then
@@ -184,34 +188,34 @@ function UI.Initialize()
                 Notification:Notify("error", "Error", "Zone not found or invalid part", 3)
             end
         end)
-        
+
         Teleports:AddButton("Forsaken Shores Teleport", function()
             local args = {
                 [1] = workspace.zones.player:FindFirstChild("Forsaken Shores")
             }
-            
+
             game:GetService("ReplicatedStorage").packages.Net:FindFirstChild("RF/SetZone"):InvokeServer(unpack(args))
             Notification:Notify("info", "Teleported", "Successfully teleported to Forsaken Shores", 3)
         end)
-        
+
         Teleports:AddButton("The Depths Teleport", function()
             local args = {
                 [1] = workspace.zones.player:FindFirstChild("The Depths")
             }
-            
+
             game:GetService("ReplicatedStorage").packages.Net:FindFirstChild("RF/SetZone"):InvokeServer(unpack(args))
             Notification:Notify("info", "Teleported", "Successfully teleported to The Depths", 3)
         end)
-        
+
         Teleports:AddButton("Brine Pool Teleport", function()
             local args = {
                 [1] = workspace.zones.player:FindFirstChild("Brine Pool")
             }
-            
+
             game:GetService("ReplicatedStorage").packages.Net:FindFirstChild("RF/SetZone"):InvokeServer(unpack(args))
             Notification:Notify("info", "Teleported", "Successfully teleported to Brine Pool", 3)
         end)
-        
+
         -- Add merchant teleport
         Teleports:AddButton("Teleport to Merchant", function()
             LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(464, 151, 232)
@@ -224,7 +228,7 @@ function UI.Initialize()
             Notification:Notify("info", "Sold", "Items sold successfully", 3)
         end)
 
-        Actions:AddButton("Open/Close Boat UI", function() 
+        Actions:AddButton("Open/Close Boat UI", function()
             FischUser.OpenBoatUI()
         end)
 
@@ -238,7 +242,7 @@ function UI.Initialize()
 
         Internal.UILoaded = true
     end)
-    
+
     if not success then
         print("UI initialization error: " .. tostring(err))
         Notification:Notify(
@@ -250,18 +254,19 @@ function UI.Initialize()
     end
 end
 
---Utils
+-- Utility Functions
 function Utils.Overlap(gui1, gui2)
     local gui1_topLeft = gui1.AbsolutePosition
     local gui1_bottomRight = gui1_topLeft + gui1.AbsoluteSize
 
     local gui2_topLeft = gui2.AbsolutePosition
     local gui2_bottomRight = gui2_topLeft + gui2.AbsoluteSize
-    
-    return ((gui1_topLeft.x < gui2_bottomRight.x and gui1_bottomRight.x > gui2_topLeft.x) and (gui1_topLeft.y < gui2_bottomRight.y and gui1_bottomRight.y > gui2_topLeft.y))
+
+    return ((gui1_topLeft.x < gui2_bottomRight.x and gui1_bottomRight.x > gui2_topLeft.x) and
+            (gui1_topLeft.y < gui2_bottomRight.y and gui1_bottomRight.y > gui2_topLeft.y))
 end
 
---VI
+-- Virtual Input Functions
 VI.State = false
 
 function VI.ClickUI(ui)
@@ -286,7 +291,7 @@ function VI.Up(ui)
     VIM:SendMouseButtonEvent(x, y, 0, false, game, 0)
 end
 
---API
+-- API Functions
 function FischAPI.TapShake()
     local shakeUI = game:GetService("Players").LocalPlayer.PlayerGui:FindFirstChild("shakeui")
     if shakeUI and shakeUI.Enabled then
@@ -327,10 +332,10 @@ function FischAPI.Cast()
                 if castEvent then
                     -- Generate a random power between 90-99
                     local power = math.random(90, 99)
-                    
+
                     -- Cast with the random power
                     castEvent:FireServer(power, 1)
-                    
+
                     -- Ensure the character is not anchored
                     local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
                     if humanoidRootPart then
@@ -352,7 +357,7 @@ function FischAPI.AutoSellWithReturn()
     local rootPart = character:WaitForChild("HumanoidRootPart")
     local currentPosition = rootPart.CFrame
     local sellPosition = CFrame.new(464, 151, 232)
-    
+
     -- Store whether lock was active
     local wasLockActive = false
     if Options.Lock then
@@ -380,12 +385,12 @@ end
 function FischAPI.GetFish()
     local Text = "Items/Fish:\n"
     for i, v in pairs(game.Players.LocalPlayer.Backpack:GetChildren()) do
-        Text=Text..v.Name.."\n"
+        Text = Text .. v.Name .. "\n"
     end
     return Text
 end
 
---User Functions
+-- User Functions
 function FischUser.Sell()
     FischAPI.SellAll()
 end
@@ -413,7 +418,7 @@ function FischUser.FloatOnWater()
     end)
     Internal.FloatPart = Instance.new("Part", workspace)
     Internal.FloatPart.Anchored = true
-    Internal.FloatPart.Size = Vector3.new(10,1,10)
+    Internal.FloatPart.Size = Vector3.new(10, 1, 10)
     Internal.FloatPart.Position = Vector3.new(game.Players.LocalPlayer.Character.HumanoidRootPart.Position.X, 133.77, game.Players.LocalPlayer.Character.HumanoidRootPart.Position.Z)
     game.Players.LocalPlayer.Character.HumanoidRootPart.Position = Vector3.new(game.Players.LocalPlayer.Character.HumanoidRootPart.Position.X, 150, game.Players.LocalPlayer.Character.HumanoidRootPart.Position.Z)
 end
@@ -438,14 +443,14 @@ function FischUser.StepLoop()
             FischUser.FloatOnWater()
         end)
     end
-    
+
     -- Handle auto shake (enter only)
     if Options.AutoShake2 then
         pcall(function()
             FischUser.AutoShake()
         end)
     end
-    
+
     if Options.AutoMinigameBlatant then
         pcall(function()
             FischUser.AutoReel()
@@ -461,7 +466,7 @@ function FischUser.Heartbeat()
             if character and character:FindFirstChild("HumanoidRootPart") then
                 local currentPos = character.HumanoidRootPart.Position
                 local targetPos = Internal.LockedPosition
-                
+
                 -- Only adjust if we've drifted more than a small threshold
                 if (currentPos - targetPos).Magnitude > 0.5 then
                     game.Players.LocalPlayer.Character.HumanoidRootPart.Position = targetPos
@@ -495,11 +500,11 @@ function FischUser.Initialize()
             end)
         end)
     end)
-    
+
     spawn(function()
         FischUser.OneStep()
     end)
-    
+
     spawn(function()
         while task.wait(0.005) do
             pcall(function()
@@ -507,7 +512,7 @@ function FischUser.Initialize()
             end)
         end
     end)
-    
+
     spawn(function()
         while task.wait(1) do
             pcall(function()
@@ -515,7 +520,7 @@ function FischUser.Initialize()
             end)
         end
     end)
-    
+
     spawn(function()
         while task.wait(Options.AutoSellDelay * 60) do
             pcall(function()
@@ -523,7 +528,7 @@ function FischUser.Initialize()
             end)
         end
     end)
-    
+
     -- Initialize UI with delay to ensure game has loaded
     spawn(function()
         wait(2) -- Give game time to fully load
