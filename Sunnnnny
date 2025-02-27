@@ -1,28 +1,15 @@
--- Make sure we're in a proper Roblox environment
-if not game then
-    warn("This script must be executed in a Roblox game environment")
-    return
-end
+-- Load Fluent UI Library
+local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
 
--- Load Neverlose UI Library with pcall to catch errors
-local success, NeverloseLib = pcall(function()
-    return loadstring(game:HttpGet("https://raw.githubusercontent.com/shlexware/Neverlose/main/source"))()
-end)
-
-if not success then
-    warn("Failed to load Neverlose UI Library:", NeverloseLib)
-    return
-end
-
--- Check if the library loaded properly
-if not NeverloseLib then
-    warn("Neverlose UI Library loaded but returned nil")
-    return
-end
-
--- Rest of your script follows...
--- Create the Window
-local Window = NeverloseLib:Window("Ogsunny Hub V1.2.4", "Neverlose", true)
+-- Create Window
+local Window = Fluent:CreateWindow({
+    Title = "Ogsunny Hub V1.2.4",
+    SubTitle = "Fishing Game",
+    TabWidth = 160,
+    Size = UDim2.fromOffset(580, 460),
+    Acrylic = true,
+    Theme = "Dark"
+})
 
 -- Tables
 local teleportSpots = {}
@@ -51,22 +38,11 @@ local Players = game:GetService("Players")
 
 -- Locals
 local LocalPlayer = Players.LocalPlayer
-if not LocalPlayer then
-    warn("LocalPlayer not found. Make sure you're running this in-game.")
-    return
-end
-
 local LocalCharacter = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
 local HumanoidRootPart = LocalCharacter:WaitForChild("HumanoidRootPart")
 local PlayerGUI = LocalPlayer:FindFirstChildOfClass("PlayerGui")
 local RenderStepped = RunService.RenderStepped
 local WaitForSomeone = RenderStepped.Wait
-
--- Define connections as nil to avoid errors when disconnecting
-local autoreelandshakeConnection = nil
-local autoCastConnection = nil
-local autoCastConnection2 = nil
-local NoclipConnection = nil
 
 -- Try to find a folder with teleport spots
 local TpSpotsFolder = workspace:FindFirstChild("TeleportSpots") or workspace:FindFirstChild("TpSpots")
@@ -102,8 +78,8 @@ local autoCastDelay = 2
 local Noclip = false
 
 -- Create Tabs
-local MainTab = Window:Tab("Main")
-local TeleportsTab = Window:Tab("Teleports")
+local MainTab = Window:AddTab({Title = "Main", Icon = "activity"})
+local TeleportsTab = Window:AddTab({Title = "Teleports", Icon = "map-pin"})
 
 -- Fix for character references
 LocalPlayer.CharacterAdded:Connect(function(Character)
@@ -112,6 +88,7 @@ LocalPlayer.CharacterAdded:Connect(function(Character)
 end)
 
 -- Function to setup character-specific connections
+local autoCastConnection
 function setupCharacterConnections()
     if autoCastConnection then autoCastConnection:Disconnect() end
 
@@ -119,17 +96,13 @@ function setupCharacterConnections()
         if child:IsA("Tool") and child:FindFirstChild("events") and child.events:FindFirstChild("cast") ~= nil and autoCast then
             task.wait(autoCastDelay)
             if autoCastMode == "Legit" then
-                VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, game, 0)
-                task.wait(0.1)
-                local powerConnection
-                powerConnection = HumanoidRootPart.ChildAdded:Connect(function(powerObj)
-                    if powerObj.Name == "power" and powerObj:FindFirstChild("powerbar") and powerObj.powerbar:FindFirstChild("bar") then
-                        local barConnection
-                        barConnection = powerObj.powerbar.bar.Changed:Connect(function(property)
-                            if property == "Size" and powerObj.powerbar.bar.Size == UDim2.new(1, 0, 1, 0) then
-                                VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, game, 0)
-                                if barConnection then
-                                    barConnection:Disconnect()
+                VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, LocalPlayer, 0)
+                HumanoidRootPart.ChildAdded:Connect(function()
+                    if HumanoidRootPart:FindFirstChild("power") ~= nil and HumanoidRootPart.power.powerbar.bar ~= nil then
+                        HumanoidRootPart.power.powerbar.bar.Changed:Connect(function(property)
+                            if property == "Size" then
+                                if HumanoidRootPart.power.powerbar.bar.Size == UDim2.new(1, 0, 1, 0) then
+                                    VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, LocalPlayer, 0)
                                 end
                             end
                         end)
@@ -143,6 +116,7 @@ function setupCharacterConnections()
 end
 
 -- GUI-related connections
+local autoreelandshakeConnection
 if autoreelandshakeConnection then autoreelandshakeConnection:Disconnect() end
 autoreelandshakeConnection = PlayerGUI.ChildAdded:Connect(function(GUI)
     if GUI:IsA("ScreenGui") and GUI.Name == "shakeui" then
@@ -155,25 +129,24 @@ autoreelandshakeConnection = PlayerGUI.ChildAdded:Connect(function(GUI)
                             if autoShakeMethod == "ClickEvent" then
                                 local pos = child.AbsolutePosition
                                 local size = child.AbsoluteSize
-                                VirtualInputManager:SendMouseButtonEvent(pos.X + size.X / 2, pos.Y + size.Y / 2, 0, true, game, 0)
-                                VirtualInputManager:SendMouseButtonEvent(pos.X + size.X / 2, pos.Y + size.Y / 2, 0, false, game, 0)
+                                VirtualInputManager:SendMouseButtonEvent(pos.X + size.X / 2, pos.Y + size.Y / 2, 0, true, LocalPlayer, 0)
+                                VirtualInputManager:SendMouseButtonEvent(pos.X + size.X / 2, pos.Y + size.Y / 2, 0, false, LocalPlayer, 0)
                             elseif autoShakeMethod == "KeyCodeEvent" then
-                                task.spawn(function()
-                                    while task.wait() do
-                                        if autoShake and GUI.safezone:FindFirstChild(child.Name) ~= nil then
-                                            pcall(function()
-                                                GuiService.SelectedObject = child
-                                                if GuiService.SelectedObject == child then
-                                                    VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.Return, false, game)
-                                                    VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.Return, false, game)
-                                                end
-                                            end)
-                                        else
-                                            GuiService.SelectedObject = nil
-                                            break
-                                        end
+                                while WaitForSomeone(RenderStepped) do
+                                    if autoShake and GUI.safezone:FindFirstChild(child.Name) ~= nil then
+                                        task.wait()
+                                        pcall(function()
+                                            GuiService.SelectedObject = child
+                                            if GuiService.SelectedObject == child then
+                                                VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.Return, false, game)
+                                                VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.Return, false, game)
+                                            end
+                                        end)
+                                    else
+                                        GuiService.SelectedObject = nil
+                                        break
                                     end
-                                end)
+                                end
                             end
                         end
                     end
@@ -182,38 +155,27 @@ autoreelandshakeConnection = PlayerGUI.ChildAdded:Connect(function(GUI)
         end
     end
     if GUI:IsA("ScreenGui") and GUI.Name == "reel" then
-        if autoReel and ReplicatedStorage:FindFirstChild("events") and ReplicatedStorage.events:FindFirstChild("reelfinished") then
-            task.spawn(function()
-                while GUI and GUI.Parent do
-                    if not autoReel then break end
-                    task.wait(autoReelDelay)
-                    pcall(function()
-                        ReplicatedStorage.events.reelfinished:FireServer(100, false)
-                    end)
-                end
-            end)
+        if autoReel and ReplicatedStorage:WaitForChild("events"):WaitForChild("reelfinished") ~= nil then
+            repeat task.wait(autoReelDelay) ReplicatedStorage.events.reelfinished:FireServer(100, false) until GUI == nil or GUI.Parent == nil
         end
     end
 end)
 
+local autoCastConnection2
 if autoCastConnection2 then autoCastConnection2:Disconnect() end
 autoCastConnection2 = PlayerGUI.ChildRemoved:Connect(function(GUI)
     if GUI.Name == "reel" then
         local Tool = LocalCharacter:FindFirstChildOfClass("Tool")
-        if autoCast and Tool and Tool:FindFirstChild("events") and Tool.events:FindFirstChild("cast") then
+        if autoCast and Tool ~= nil and Tool:FindFirstChild("events") and Tool.events:FindFirstChild("cast") ~= nil then
             task.wait(autoCastDelay)
             if autoCastMode == "Legit" then
-                VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, game, 0)
-                task.wait(0.1)
-                local powerConnection
-                powerConnection = HumanoidRootPart.ChildAdded:Connect(function(powerObj)
-                    if powerObj.Name == "power" and powerObj:FindFirstChild("powerbar") and powerObj.powerbar:FindFirstChild("bar") then
-                        local barConnection
-                        barConnection = powerObj.powerbar.bar.Changed:Connect(function(property)
-                            if property == "Size" and powerObj.powerbar.bar.Size == UDim2.new(1, 0, 1, 0) then
-                                VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, game, 0)
-                                if barConnection then
-                                    barConnection:Disconnect()
+                VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, LocalPlayer, 0)
+                HumanoidRootPart.ChildAdded:Connect(function()
+                    if HumanoidRootPart:FindFirstChild("power") ~= nil and HumanoidRootPart.power.powerbar.bar ~= nil then
+                        HumanoidRootPart.power.powerbar.bar.Changed:Connect(function(property)
+                            if property == "Size" then
+                                if HumanoidRootPart.power.powerbar.bar.Size == UDim2.new(1, 0, 1, 0) then
+                                    VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, LocalPlayer, 0)
                                 end
                             end
                         end)
@@ -230,6 +192,7 @@ end)
 setupCharacterConnections()
 
 -- Noclip
+local NoclipConnection
 if NoclipConnection then NoclipConnection:Disconnect() end
 NoclipConnection = RunService.Stepped:Connect(function()
     if Noclip then
@@ -250,143 +213,218 @@ for _, v in pairs(TpSpotsFolder:GetChildren()) do
     end
 end
 
--- Main Tab UI
-MainTab:Section("Auto Shake")
+-- Create sections for Main Tab
+local AutoShakeSection = MainTab:AddSection("Auto Shake")
 
-MainTab:Toggle("Enable AutoShake", false, function(Value)
-    autoShake = Value
-end)
+-- Auto Shake Toggle
+MainTab:AddToggle({
+    Title = "Enable AutoShake",
+    Default = false,
+    Callback = function(Value)
+        autoShake = Value
+    end
+})
 
-MainTab:Dropdown("AutoShake Method", {"ClickEvent", "KeyCodeEvent"}, function(Value)
-    autoShakeMethod = Value
-end)
+-- Auto Shake Method Dropdown
+MainTab:AddDropdown({
+    Title = "AutoShake Method",
+    Values = {"ClickEvent", "KeyCodeEvent"},
+    Default = "KeyCodeEvent",
+    Callback = function(Value)
+        autoShakeMethod = Value
+    end
+})
 
-MainTab:Slider("AutoShake Delay", 0, 10, 0.1, "seconds", function(Value)
-    autoShakeDelay = Value
-end)
+-- Auto Shake Delay Slider
+MainTab:AddSlider({
+    Title = "AutoShake Delay",
+    Min = 0,
+    Max = 10,
+    Default = 0.1,
+    Precise = true,
+    Decimals = 1,
+    Callback = function(Value)
+        autoShakeDelay = Value
+    end
+})
 
-MainTab:Section("Auto Reel")
+-- Auto Reel Section
+local AutoReelSection = MainTab:AddSection("Auto Reel")
 
-MainTab:Toggle("Enable AutoReel", false, function(Value)
-    autoReel = Value
-end)
+-- Auto Reel Toggle
+MainTab:AddToggle({
+    Title = "Enable AutoReel",
+    Default = false,
+    Callback = function(Value)
+        autoReel = Value
+    end
+})
 
-MainTab:Slider("AutoReel Delay", 0, 10, 2, "seconds", function(Value)
-    autoReelDelay = Value
-end)
+-- Auto Reel Delay Slider
+MainTab:AddSlider({
+    Title = "AutoReel Delay",
+    Min = 0,
+    Max = 10,
+    Default = 2,
+    Precise = true,
+    Decimals = 1,
+    Callback = function(Value)
+        autoReelDelay = Value
+    end
+})
 
-MainTab:Section("Auto Cast")
+-- Auto Cast Section
+local AutoCastSection = MainTab:AddSection("Auto Cast")
 
-MainTab:Toggle("Enable AutoCast", false, function(Value)
-    autoCast = Value
-    local Tool = LocalCharacter:FindFirstChildOfClass("Tool")
-    if Tool and Tool:FindFirstChild("events") and Tool.events:FindFirstChild("cast") and Value then
-        task.wait(autoCastDelay)
-        if autoCastMode == "Legit" then
-            VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, game, 0)
-            task.wait(0.1)
-            local powerConnection
-            powerConnection = HumanoidRootPart.ChildAdded:Connect(function(powerObj)
-                if powerObj.Name == "power" and powerObj:FindFirstChild("powerbar") and powerObj.powerbar:FindFirstChild("bar") then
-                    local barConnection
-                    barConnection = powerObj.powerbar.bar.Changed:Connect(function(property)
-                        if property == "Size" and powerObj.powerbar.bar.Size == UDim2.new(1, 0, 1, 0) then
-                            VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, game, 0)
-                            if barConnection then
-                                barConnection:Disconnect()
+-- Auto Cast Toggle
+MainTab:AddToggle({
+    Title = "Enable AutoCast",
+    Default = false,
+    Callback = function(Value)
+        autoCast = Value
+        local Tool = LocalCharacter:FindFirstChildOfClass("Tool")
+        if Tool and Tool:FindFirstChild("events") and Tool.events:FindFirstChild("cast") and Value then
+            task.wait(autoCastDelay)
+            if autoCastMode == "Legit" then
+                VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, LocalPlayer, 0)
+                HumanoidRootPart.ChildAdded:Connect(function()
+                    if HumanoidRootPart:FindFirstChild("power") and HumanoidRootPart.power.powerbar.bar then
+                        HumanoidRootPart.power.powerbar.bar.Changed:Connect(function(property)
+                            if property == "Size" and HumanoidRootPart.power.powerbar.bar.Size == UDim2.new(1, 0, 1, 0) then
+                                VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, LocalPlayer, 0)
                             end
-                        end
-                    end)
-                end
-            end)
-        elseif autoCastMode == "Rage" then
-            pcall(function()
+                        end)
+                    end
+                end)
+            elseif autoCastMode == "Rage" then
                 Tool.events.cast:FireServer(100)
-            end)
+            end
         end
     end
-end)
+})
 
-MainTab:Dropdown("AutoCast Mode", {"Legit", "Rage"}, function(Value)
-    autoCastMode = Value
-end)
-
-MainTab:Slider("AutoCast Delay", 0, 10, 2, "seconds", function(Value)
-    autoCastDelay = Value
-end)
-
--- Additional feature - Noclip
-MainTab:Section("Utilities")
-
-MainTab:Toggle("Enable Noclip", false, function(Value)
-    Noclip = Value
-end)
-
--- Teleports Tab
-TeleportsTab:Section("Teleports")
-
-TeleportsTab:Dropdown("Teleport to Location", teleportSpots, function(Value)
-    if teleportSpots and HumanoidRootPart then
-        HumanoidRootPart.CFrame = TpSpotsFolder:FindFirstChild(Value).CFrame + Vector3.new(0, 5, 0)
+-- Auto Cast Mode Dropdown
+MainTab:AddDropdown({
+    Title = "AutoCast Mode",
+    Values = {"Legit", "Rage"},
+    Default = "Legit",
+    Callback = function(Value)
+        autoCastMode = Value
     end
-end)
+})
 
-TeleportsTab:Dropdown("Teleport to Item", {"Bait_Crate", "Carbon_Rod", "Crab_Cage", "Fast_Rod", "Flimsy_Rod", "GPS", "Long_Rod", "Lucky_Rod", "Plastic_Rod", "Training_Rod"}, function(Value)
-    if itemSpots and HumanoidRootPart then
-        HumanoidRootPart.CFrame = itemSpots[Value]
+-- Auto Cast Delay Slider
+MainTab:AddSlider({
+    Title = "AutoCast Delay",
+    Min = 0,
+    Max = 10,
+    Default = 2,
+    Precise = true,
+    Decimals = 1,
+    Callback = function(Value)
+        autoCastDelay = Value
     end
-end)
+})
 
--- Save current location as a teleport spot
-TeleportsTab:Button("Save Current Location", function()
-    local spotName = "Spot_" .. #teleportSpots + 1
-    
-    local newSpot = Instance.new("Part")
-    newSpot.Name = spotName
-    newSpot.Anchored = true
-    newSpot.CanCollide = false
-    newSpot.Transparency = 1
-    newSpot.CFrame = HumanoidRootPart.CFrame
-    newSpot.Parent = TpSpotsFolder
-    
-    table.insert(teleportSpots, spotName)
-    
-    NeverloseLib:Notification("Location Saved", "Saved current location as " .. spotName, 3)
-end)
+-- Utilities Section
+local UtilitiesSection = MainTab:AddSection("Utilities")
 
--- Unload Script
-MainTab:Button("Unload Script", function()
-    -- Disconnect all connections
-    if autoreelandshakeConnection then 
-        pcall(function() autoreelandshakeConnection:Disconnect() end)
-        autoreelandshakeConnection = nil
+-- Noclip Toggle
+MainTab:AddToggle({
+    Title = "Enable Noclip",
+    Default = false,
+    Callback = function(Value)
+        Noclip = Value
     end
-    if autoCastConnection then 
-        pcall(function() autoCastConnection:Disconnect() end)
-        autoCastConnection = nil
-    end
-    if autoCastConnection2 then 
-        pcall(function() autoCastConnection2:Disconnect() end)
-        autoCastConnection2 = nil
-    end
-    if NoclipConnection then 
-        pcall(function() NoclipConnection:Disconnect() end)
-        NoclipConnection = nil
-    end
+})
 
-    -- Notify the user
-    pcall(function()
-        NeverloseLib:Notification("Script Unloaded", "The script has been unloaded successfully.", 5)
-    end)
-    
-    -- Safe unload with delay
-    task.wait(1)
-    
-    -- Unload the Neverlose UI Library
-    pcall(function()
-        NeverloseLib:Unload()
-    end)
-end)
+-- Teleports Tab Sections
+local TeleportsSection = TeleportsTab:AddSection("Teleports")
 
--- Notify that script has loaded successfully
-NeverloseLib:Notification("Ogsunny Hub", "Script loaded successfully! V1.2.4", 5)
+-- Convert table keys to array for dropdown
+local itemSpotList = {}
+for key, _ in pairs(itemSpots) do
+    table.insert(itemSpotList, key)
+end
+
+-- Teleport to Location Dropdown
+TeleportsTab:AddDropdown({
+    Title = "Teleport to Location",
+    Values = teleportSpots,
+    Callback = function(Value)
+        if teleportSpots and HumanoidRootPart then
+            HumanoidRootPart.CFrame = TpSpotsFolder:FindFirstChild(Value).CFrame + Vector3.new(0, 5, 0)
+        end
+    end
+})
+
+-- Teleport to Item Dropdown
+TeleportsTab:AddDropdown({
+    Title = "Teleport to Item",
+    Values = itemSpotList,
+    Callback = function(Value)
+        if itemSpots and HumanoidRootPart then
+            HumanoidRootPart.CFrame = itemSpots[Value]
+        end
+    end
+})
+
+-- Save Current Location Button
+TeleportsTab:AddButton({
+    Title = "Save Current Location",
+    Callback = function()
+        local spotName = "Spot_" .. #teleportSpots + 1
+        
+        local newSpot = Instance.new("Part")
+        newSpot.Name = spotName
+        newSpot.Anchored = true
+        newSpot.CanCollide = false
+        newSpot.Transparency = 1
+        newSpot.CFrame = HumanoidRootPart.CFrame
+        newSpot.Parent = TpSpotsFolder
+        
+        table.insert(teleportSpots, spotName)
+        
+        Fluent:Notify({
+            Title = "Location Saved",
+            Content = "Saved current location as " .. spotName,
+            Duration = 3
+        })
+    end
+})
+
+-- Unload Script Button
+MainTab:AddButton({
+    Title = "Unload Script",
+    Callback = function()
+        -- Disconnect all connections
+        if autoreelandshakeConnection then autoreelandshakeConnection:Disconnect() end
+        if autoCastConnection then autoCastConnection:Disconnect() end
+        if autoCastConnection2 then autoCastConnection2:Disconnect() end
+        if NoclipConnection then NoclipConnection:Disconnect() end
+
+        -- Remove GUI elements
+        for _, v in pairs(PlayerGUI:GetChildren()) do
+            if v:IsA("ScreenGui") and (v.Name == "shakeui" or v.Name == "reel") then
+                v:Destroy()
+            end
+        end
+
+        -- Unload the Fluent UI Library
+        Window:Destroy()
+
+        -- Notify the user
+        Fluent:Notify({
+            Title = "Script Unloaded",
+            Content = "The script has been unloaded successfully.",
+            Duration = 5
+        })
+    end
+})
+
+-- Initial notification
+Fluent:Notify({
+    Title = "Ogsunny Hub",
+    Content = "Script loaded successfully! V1.2.4",
+    Duration = 5
+})
